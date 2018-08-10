@@ -16,15 +16,10 @@ def write_to_db(cursor, original_filename, new_filename, checksum):
     query = 'INSERT INTO files (original_filename, new_filename, checksum) VALUES (?, ?, ?)'
     cursor.execute(query, [original_filename, new_filename, checksum])
 
-def check_duplicate(cursor, checksum):
+def get_file_by_checksum(cursor, checksum):
     query = 'SELECT * FROM files WHERE checksum=?'
     result = cursor.execute(query, [checksum]).fetchone()
     return result
-
-def get_file_by_checksum(cursor, checksum):
-    query = 'SELECT * FROM files WHERE checksum=?'
-    filename = cursor.execute(query, [checksum]).fetchone()[2]
-    return filename
 
 def calc_md5(file_up):
     md5_obj = md5()
@@ -49,8 +44,8 @@ def upload_file():
     md5_sum = calc_md5(file_up)
     database = sqlite3.connect(app.config['DATABASE'])
     cursor = database.cursor()
-    if check_duplicate(cursor, md5_sum):
-        new_filename = get_file_by_checksum(cursor, md5_sum)
+    if get_file_by_checksum(cursor, md5_sum):
+        new_filename = get_file_by_checksum(cursor, md5_sum)[2]
     else:
         ext = os.path.splitext(file_up.filename)[1]
         new_filename = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) + ext
@@ -69,4 +64,3 @@ def uploaded_file(filename):
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
-    

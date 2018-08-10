@@ -19,7 +19,8 @@ if os.path.exists(dbname):
     raise Exception('{} already present'.format(dbname))
 database = sqlite3.connect(dbname)
 cursor = database.cursor()
-cursor.execute('CREATE TABLE IF NOT EXISTS files (id INTEGER PRIMARY KEY, original_filename TEXT, new_filename TEXT, checksum TEXT)')
+cursor.execute('CREATE TABLE IF NOT EXISTS files (id INTEGER PRIMARY KEY, original_filename TEXT, new_filename TEXT, checksum TEXT UNIQUE)')
+cursor.execute('CREATE INDEX index_checksum ON files(checksum)')
 database.commit()
 database.close()
 
