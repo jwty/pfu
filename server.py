@@ -5,6 +5,7 @@ import os
 import random
 import string
 import sqlite3
+from time import time
 from hashlib import md5
 from flask import Flask, render_template, request, send_from_directory, jsonify
 from werkzeug.security import check_password_hash
@@ -12,9 +13,9 @@ from werkzeug.security import check_password_hash
 app = Flask(__name__)
 app.config.from_pyfile('config.cfg')
 
-def write_to_db(cursor, original_filename, new_filename, checksum):
-    query = 'INSERT INTO files (original_filename, new_filename, checksum) VALUES (?, ?, ?)'
-    cursor.execute(query, [original_filename, new_filename, checksum])
+def write_to_db(cursor, original_filename, new_filename, upload_date, keep, checksum):
+    query = 'INSERT INTO files (original_filename, new_filename, upload_date, keep, checksum) VALUES (?, ?, ?, ?, ?)'
+    cursor.execute(query, [original_filename, new_filename, upload_date, keep, checksum])
 
 def get_file_by_checksum(cursor, checksum):
     query = 'SELECT * FROM files WHERE checksum=?'
@@ -39,6 +40,7 @@ def index():
 def upload_file():
     file_up = request.files['file_up']
     secret = request.form['secret']
+    keep = int('keep' in request.form)
     if not check_password_hash(app.config['AUTH_SECRET'], secret):
         return jsonify(response='wrong_password')
     md5_sum = calc_md5(file_up)
@@ -51,7 +53,7 @@ def upload_file():
         new_filename = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) + ext
         file_path = os.path.join(app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
-        write_to_db(cursor, file_up.filename, new_filename, md5_sum)
+        write_to_db(cursor, file_up.filename, new_filename, int(time()), keep, md5_sum)
     database.commit()
     database.close()
     if 'json' in request.args:
