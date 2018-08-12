@@ -22,6 +22,10 @@ def get_file_by_checksum(cursor, checksum):
     result = cursor.execute(query, [checksum]).fetchone()
     return result
 
+def mark_keep(cursor, checksum):
+    query = 'UPDATE files SET keep = 1 WHERE checksum=?'
+    cursor.execute(query, [checksum])
+
 def calc_md5(file_up):
     md5_obj = md5()
     chunk_size = app.config['CHUNK_SIZE']
@@ -38,19 +42,24 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    file_up = request.files['file_up']
-    secret = request.form['secret']
-    keep = int('keep' in request.form)
+    try:
+        file_up = request.files['file_up']
+        secret = request.form['secret']
+    except:
+        return jsonify(response='empty_form')
     if not check_password_hash(app.config['AUTH_SECRET'], secret):
         return jsonify(response='wrong_password')
     md5_sum = calc_md5(file_up)
     database = sqlite3.connect(app.config['DATABASE'])
     cursor = database.cursor()
+    keep = int('keep' in request.form)
     if get_file_by_checksum(cursor, md5_sum):
+        if keep: mark_keep(cursor, md5_sum)
         new_filename = get_file_by_checksum(cursor, md5_sum)[2]
     else:
         ext = os.path.splitext(file_up.filename)[1]
-        new_filename = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8)) + ext
+        random_string = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+        new_filename = '{}-{}{}'.format(os.path.splitext(file_up.filename)[0], random_string, ext) if keep else random_string + ext
         file_path = os.path.join(app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
         write_to_db(cursor, file_up.filename, new_filename, int(time()), keep, md5_sum)

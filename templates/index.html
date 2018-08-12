@@ -6,8 +6,8 @@
 </head>
 <body>
 <form action="/upload" method="post" enctype="multipart/form-data">
-<span class="btn btn-default btn-file"><input type="file" name="file_up"><br>
-<input type="password" name="secret" placeholder="Secret"></span><br>
+<span class="btn btn-default btn-file"><input type="file" name="file_up" required><br>
+<input type="password" name="secret" placeholder="Secret" required></span><br>
 <input type="submit" value="Upload" class="btn btn-primary">
 <input type="checkbox" name="keep">Keep file?
 </form>
