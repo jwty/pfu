@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import random
+import secrets
 import string
 import sqlite3
 from datetime import datetime
@@ -41,13 +41,14 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    print(request.data)
     try:
         file_up = request.files['file_up']
         secret = request.form['secret']
     except:
-        return jsonify(response='empty_form')
+        return jsonify(response='empty_form'), 400
     if not check_password_hash(app.config['AUTH_SECRET'], secret):
-        return jsonify(response='wrong_password')
+        return jsonify(response='wrong_password'), 401
     md5_sum = calc_md5(file_up)
     database = sqlite3.connect(app.config['DATABASE'])
     cursor = database.cursor()
@@ -63,7 +64,7 @@ def upload_file():
         new_filename = get_file_by_checksum(cursor, md5_sum)[2]
     else:
         ext = os.path.splitext(file_up.filename)[1]
-        random_string = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
+        random_string = secrets.token_urlsafe(5)
         new_filename = '{}-{}{}'.format(os.path.splitext(file_up.filename)[0], random_string, ext) if keep else random_string + ext
         file_path = os.path.join(app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
