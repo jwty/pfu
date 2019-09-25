@@ -8,33 +8,50 @@ import sqlite3
 from datetime import datetime
 from time import time
 from hashlib import md5
-from flask import Flask, render_template, request, send_from_directory, jsonify, redirect
+from flask import Flask, render_template, request, send_from_directory, jsonify, redirect, g
 from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
 app.config.from_pyfile('config.cfg')
+ignored_endpoints = ('serve_file', 'index')
 
-def write_to_db(cursor, original_filename, new_filename, upload_date, expire_date, checksum):
+@app.before_request
+def before_request():
+    if request.endpoint in ignored_endpoints:
+        return
+    database = sqlite3.connect(app.config['DATABASE'])
+    cursor = database.cursor()
+    g.db = database
+    g.cursor = cursor
+
+@app.after_request
+def after_request(response):
+    if hasattr(g, 'db'):
+        g.cursor.close()
+        g.db.commit()
+        g.db.close()
+    return response
+
+def write_to_db(original_filename, new_filename, upload_date, expire_date, checksum):
     query = 'INSERT INTO files (original_filename, new_filename, upload_date, expire_date, checksum) VALUES (?, ?, ?, ?, ?)'
-    cursor.execute(query, [original_filename, new_filename, upload_date, expire_date, checksum])
+    g.cursor.execute(query, [original_filename, new_filename, upload_date, expire_date, checksum])
 
-def delete_by_filename(cursor, filename):
+def delete_by_filename(filename):
     query = "DELETE FROM files WHERE new_filename=?"
-    cursor.execute(query, [filename])
+    g.cursor.execute(query, [filename])
     os.remove(os.path.join(app.config['UPLOAD_DIR'], filename))
 
-def get_file_by_checksum(cursor, checksum):
+def get_file_by_checksum(checksum):
     query = 'SELECT * FROM files WHERE checksum=?'
-    result = cursor.execute(query, [checksum]).fetchone()
+    result = g.cursor.execute(query, [checksum]).fetchone()
     return result
 
-def check_if_file_in_db(cursor, filename):
+def check_if_file_in_db(filename):
     query = 'SELECT * FROM files WHERE new_filename=?'
-    result = cursor.execute(query, [filename]).fetchone()
-    if result is None:
-        return False
-    else:
+    result = g.cursor.execute(query, [filename]).fetchone()
+    if result is not None:
         return True
+    return False
 
 def gen_response(json, status, data):
     if json:
@@ -69,8 +86,6 @@ def upload_file():
     if not check_password_hash(app.config['AUTH_SECRET'], secret):
         return gen_response(json, 'error', {'message':'wrong secret'}), 401
     md5_sum = calc_md5(file_up)
-    database = sqlite3.connect(app.config['DATABASE'])
-    cursor = database.cursor()
     keep = 'keep' in request.form
     expire = 'expire' in request.form
     if expire:
@@ -79,48 +94,40 @@ def upload_file():
         expire_date = int(datetime.strptime(expire_date+expire_time, '%Y-%m-%d%H:%M').strftime('%s'))
     else:
         expire_date = None
-    if get_file_by_checksum(cursor, md5_sum):
-        new_filename = get_file_by_checksum(cursor, md5_sum)[2]
+    if get_file_by_checksum(md5_sum):
+        new_filename = get_file_by_checksum(md5_sum)[2]
     else:
         ext = os.path.splitext(file_up.filename)[1]
         random_string = secrets.token_urlsafe(5)
         new_filename = '{}-{}{}'.format(os.path.splitext(file_up.filename)[0], random_string, ext) if keep else random_string + ext
         file_path = os.path.join(app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
-        write_to_db(cursor, file_up.filename, new_filename, int(time()), expire_date, md5_sum)
-    database.commit()
-    database.close()
+        write_to_db(file_up.filename, new_filename, int(time()), expire_date, md5_sum)
     return gen_response(json, 'success', {'file':file_up.filename, 'url':'{}{}'.format(request.url_root, new_filename)})
 
 @app.route('/delete/<filename>', methods=['GET', 'POST'])
 def delete_file(filename):
     json = True if 'json' in request.args else False
-    database = sqlite3.connect(app.config['DATABASE'])
-    cursor = database.cursor()
-    try:
-        if check_if_file_in_db(cursor, filename):
-            if request.method == 'POST':
-                    try:
-                        secret = request.form['secret']
-                    except:
-                        return gen_response(json, 'error', {'message':'empty form'}), 400
-                    if not check_password_hash(app.config['AUTH_SECRET'], secret):
-                        return gen_response(json, 'error', {'message':'wrong secret'}), 401
-                    try:
-                        delete_by_filename(cursor, filename)
-                    except Exception as e:
-                        return gen_response(json, 'error', {'message':'couldnt delete file - {}'.format(e)}), 500
-                    return gen_response(json, 'success', {'message':'file deleted'})
-            else:
-                return render_template('delete.html', filename=filename)
+    if check_if_file_in_db(filename):
+        if request.method == 'POST':
+            try:
+                secret = request.form['secret']
+            except:
+                return gen_response(json, 'error', {'message':'empty form'}), 400
+            if not check_password_hash(app.config['AUTH_SECRET'], secret):
+                return gen_response(json, 'error', {'message':'wrong secret'}), 401
+            try:
+                delete_by_filename(filename)
+            except Exception as e:
+                return gen_response(json, 'error', {'message':'couldnt delete file - {}'.format(e)}), 500
+            return gen_response(json, 'success', {'message':'file deleted'})
         else:
-            return gen_response(json, 'error', {'message':'no such file in db'}), 500
-    finally:
-        database.commit()
-        database.close()
+            return render_template('delete.html', filename=filename)
+    else:
+        return gen_response(json, 'error', {'message':'no such file in db'}), 500
 
 @app.route('/<filename>')
-def uploaded_file(filename):
+def serve_file(filename):
     return send_from_directory(app.config['UPLOAD_DIR'], filename)
 
 if __name__ == "__main__":
