@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime
 from time import time
 from hashlib import md5
-from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask import Flask, render_template, request, send_from_directory, jsonify, redirect
 from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
@@ -18,10 +18,29 @@ def write_to_db(cursor, original_filename, new_filename, upload_date, expire_dat
     query = 'INSERT INTO files (original_filename, new_filename, upload_date, expire_date, checksum) VALUES (?, ?, ?, ?, ?)'
     cursor.execute(query, [original_filename, new_filename, upload_date, expire_date, checksum])
 
+def delete_by_filename(cursor, filename):
+    query = "DELETE FROM files WHERE new_filename=?"
+    cursor.execute(query, [filename])
+    os.remove(os.path.join(app.config['UPLOAD_DIR'], filename))
+
 def get_file_by_checksum(cursor, checksum):
     query = 'SELECT * FROM files WHERE checksum=?'
     result = cursor.execute(query, [checksum]).fetchone()
     return result
+
+def check_if_file_in_db(cursor, filename):
+    query = 'SELECT * FROM files WHERE new_filename=?'
+    result = cursor.execute(query, [filename]).fetchone()
+    if result is None:
+        return False
+    else:
+        return True
+
+def gen_response(json, status, data):
+    if json:
+        return jsonify(status=status, data=data)
+    else:
+        return render_template('default_response.html', status=status, data=data)
 
 def calc_md5(file_up):
     md5_obj = md5()
@@ -41,14 +60,14 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    print(request.data)
+    json = True if 'json' in request.args else False
     try:
         file_up = request.files['file_up']
         secret = request.form['secret']
     except:
-        return jsonify(response='empty_form'), 400
+        return gen_response(json, 'error', {'message':'empty form'}), 400
     if not check_password_hash(app.config['AUTH_SECRET'], secret):
-        return jsonify(response='wrong_password'), 401
+        return gen_response(json, 'error', {'message':'wrong secret'}), 401
     md5_sum = calc_md5(file_up)
     database = sqlite3.connect(app.config['DATABASE'])
     cursor = database.cursor()
@@ -71,9 +90,34 @@ def upload_file():
         write_to_db(cursor, file_up.filename, new_filename, int(time()), expire_date, md5_sum)
     database.commit()
     database.close()
-    if 'json' in request.args:
-        return jsonify(response='ok', file=file_up.filename, url='{}{}'.format(request.url_root, new_filename))
-    return '<title>Upload complete</title><i>%s</i> => <i><a href="/%s">%s</a></i>' % (file_up.filename, new_filename, new_filename)
+    return gen_response(json, 'success', {'file':file_up.filename, 'url':'{}{}'.format(request.url_root, new_filename)})
+
+@app.route('/delete/<filename>', methods=['GET', 'POST'])
+def delete_file(filename):
+    json = True if 'json' in request.args else False
+    database = sqlite3.connect(app.config['DATABASE'])
+    cursor = database.cursor()
+    try:
+        if check_if_file_in_db(cursor, filename):
+            if request.method == 'POST':
+                    try:
+                        secret = request.form['secret']
+                    except:
+                        return gen_response(json, 'error', {'message':'empty form'}), 400
+                    if not check_password_hash(app.config['AUTH_SECRET'], secret):
+                        return gen_response(json, 'error', {'message':'wrong secret'}), 401
+                    try:
+                        delete_by_filename(cursor, filename)
+                    except Exception as e:
+                        return gen_response(json, 'error', {'message':'couldnt delete file - {}'.format(e)}), 500
+                    return gen_response(json, 'success', {'message':'file deleted'})
+            else:
+                return render_template('delete.html', filename=filename)
+        else:
+            return gen_response(json, 'error', {'message':'no such file in db'}), 500
+    finally:
+        database.commit()
+        database.close()
 
 @app.route('/<filename>')
 def uploaded_file(filename):

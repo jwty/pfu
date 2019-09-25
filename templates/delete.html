@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Delete {{ filename }}</title>
+</head>
+<body>
+<form action="/delete/{{ filename }}" method="post" enctype="multipart/form-data">
+Delete <a href="{{ url_root }}/{{ filename }}">{{ filename }}</a>? This action cannot be undone.<br>
+<input type="password" name="secret" placeholder="Secret" required>
+<input type="submit" value="Delete">
+</form>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Upload - {{ status }}</title>
+</head>
+<body>
+{{ status }}<br>
+{% for key, value in data.items() %}
+{{ key }} : {{ value|urlize }}<br>
+{% endfor %}
+</body>
+</html>
