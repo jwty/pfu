@@ -32,9 +32,11 @@ Or for JSON response:
 $ curl -X POST http://localhost:5000/upload?json -F 'file_up=@example.txt' -F 'secret=secret'
 
 {
-  "file": "example.txt", 
-  "response": "ok", 
-  "url": "http://localhost:5000/9q6w3z6d.txt"
+  "data": {
+    "file": "test.jpg", 
+    "url": "http://127.0.0.1:5000/TUMFEhE.jpg"
+  }, 
+  "status": "success"
 }
 ```
 
@@ -54,3 +56,16 @@ files = { 'file_up' : open('test.jpg', 'rb') }
 
 r = requests.post(url, data=data, files=files)
 ```
+### Deleting a file
+Delete file through web interface (`localhost:5000/delete/filename.txt`), or send POST request. In both cases you need to provide the secret key.
+```
+curl -X POST "http://localhost:5000/delete/3HzK8ic.jpg?json" -F "secret=secret"
+
+{
+  "data": {
+    "message": "file deleted"
+  }, 
+  "status": "success"
+}
+```
+Script validates if file is allowed to be deleted by checking against database (instead for example checking if file exists in `uploads/`) to make sure only valid files are deleted.
