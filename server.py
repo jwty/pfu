@@ -4,6 +4,7 @@
 import os
 import secrets
 import string
+import subprocess
 import sqlite3
 from datetime import datetime
 from time import time
@@ -12,6 +13,7 @@ from flask import Flask, render_template, request, send_from_directory, jsonify,
 from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
+__version__ = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
 app.config.from_pyfile('config.cfg')
 ignored_endpoints = ('serve_file', 'index')
 
@@ -32,9 +34,13 @@ def after_request(response):
         g.db.close()
     return response
 
-def write_to_db(original_filename, new_filename, upload_date, expire_date, checksum):
-    query = 'INSERT INTO files (original_filename, new_filename, upload_date, expire_date, checksum) VALUES (?, ?, ?, ?, ?)'
-    g.cursor.execute(query, [original_filename, new_filename, upload_date, expire_date, checksum])
+@app.context_processor
+def default_data():
+    return dict(version=__version__)
+
+def write_to_db(original_filename, desc, new_filename, upload_date, expire_date, checksum):
+    query = 'INSERT INTO files (original_filename, desc, new_filename, upload_date, expire_date, checksum) VALUES (?, ?, ?, ?, ?, ?)'
+    g.cursor.execute(query, [original_filename, desc, new_filename, upload_date, expire_date, checksum])
 
 def delete_by_filename(filename):
     query = "DELETE FROM files WHERE new_filename=?"
@@ -78,6 +84,8 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     json = True if 'json' in request.args else False
+    desc = request.form['desc'] if 'desc' in request.form else None
+    print(request.form['desc'])
     try:
         file_up = request.files['file_up']
         secret = request.form['secret']
@@ -86,24 +94,28 @@ def upload_file():
     if not check_password_hash(app.config['AUTH_SECRET'], secret):
         return gen_response(json, 'error', {'message':'wrong secret'}), 401
     md5_sum = calc_md5(file_up)
-    keep = 'keep' in request.form
-    expire = 'expire' in request.form
-    if expire:
+    if 'expire' in request.form:
         expire_date = request.form['expire_date']
         expire_time = request.form['expire_time']
         expire_date = int(datetime.strptime(expire_date+expire_time, '%Y-%m-%d%H:%M').strftime('%s'))
     else:
         expire_date = None
     if get_file_by_checksum(md5_sum):
-        new_filename = get_file_by_checksum(md5_sum)[2]
+        new_filename = get_file_by_checksum(md5_sum)[3]
     else:
         ext = os.path.splitext(file_up.filename)[1]
         random_string = secrets.token_urlsafe(5)
-        new_filename = '{}-{}{}'.format(os.path.splitext(file_up.filename)[0], random_string, ext) if keep else random_string + ext
+        if 'keep' in request.form:
+            new_filename = '{}-{}{}'.format(os.path.splitext(file_up.filename)[0].replace(' ','_'), random_string, ext)
+        else:
+            new_filename = random_string + ext
         file_path = os.path.join(app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
-        write_to_db(file_up.filename, new_filename, int(time()), expire_date, md5_sum)
-    return gen_response(json, 'success', {'file':file_up.filename, 'url':'{}{}'.format(request.url_root, new_filename)})
+        write_to_db(file_up.filename, desc, new_filename, int(time()), expire_date, md5_sum)
+    url = '{}{}'.format(request.url_root, new_filename)
+    del_url = '{}delete/{}'.format(request.url_root, new_filename)
+    message = {'file':file_up.filename, 'url':url, 'del_url':del_url, 'desc':desc}
+    return gen_response(json, 'success', message)
 
 @app.route('/delete/<filename>', methods=['GET', 'POST'])
 def delete_file(filename):

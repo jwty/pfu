@@ -1,14 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Delete {{ filename }}</title>
-</head>
-<body>
-<form action="/delete/{{ filename }}" method="post" enctype="multipart/form-data">
-Delete <a href="{{ url_root }}/{{ filename }}">{{ filename }}</a>? This action cannot be undone.<br>
+{% extends "layout.html" %}
+{% block title %}Delete {{ filename }}{% endblock %}
+{% block content %}
+<form action="/delete/{{ filename }}" method="post" enctype="multipart/form-data" class="pure-form">
+File <a href="{{ url_root }}/{{ filename }}">{{ filename }}</a> will be deleted. This action cannot be undone.<br>
+<div class="pad">
 <input type="password" name="secret" placeholder="Secret" required>
-<input type="submit" value="Delete">
+<input type="submit" value="Delete" class="pure-button pure-button-primary">
+</div>
 </form>
-</body>
-</html>
+{% endblock %}

@@ -1,13 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Upload - {{ status }}</title>
-</head>
-<body>
-{{ status }}<br>
+{% extends "layout.html" %}
+{% block title %}{{ status|capitalize }}{% endblock %}
+{% block content %}
+<ul class="align">
 {% for key, value in data.items() %}
-{{ key }} : {{ value|urlize }}<br>
+<li><b>{{ key }}</b><span class="break">{{ value|urlize }}</span></li>
 {% endfor %}
-</body>
-</html>
+</ul>
+{% endblock %}

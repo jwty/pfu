@@ -1,18 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Upload</title>
-</head>
-<body>
-<form action="/upload" method="post" enctype="multipart/form-data">
-<input type="file" name="file_up" required><br>
-<input type="checkbox" name="keep">Keep original filename?<br>
-<input type="checkbox" name="expire">Set expiration date/time?<br>
+{% extends "layout.html" %}
+{% block title %}Upload{% endblock %}
+{% block content %}
+<form action="/upload" method="post" enctype="multipart/form-data" class="pure-form">
+<fieldset>
+<label class="pure-button" style="font-size: smaller; display: inline-block;">Select file<input type="file" name="file_up" hidden required></label>
+<span id="selected_file" style="vertical-align: middle;">No file selected.</span><br>
+<input type="checkbox" name="keep"> Keep original filename?
+</fieldset>
+<fieldset class="pure-control-group">
+<input type="checkbox" name="expire"> Set expiration date/time?<br>
 <input type="date" name="expire_date" value="{{ default_date }}">
-<input type="time" name="expire_time" value="{{ default_time }}"><br>
+<input type="time" name="expire_time" value="{{ default_time }}">
+</fieldset>
+<fieldset>
+<textarea name="desc" placeholder="Description (optional)"></textarea>
+</fieldset>
+<fieldset>
 <input type="password" name="secret" placeholder="Secret" required>
-<input type="submit" value="Upload">
+<input type="submit" value="Upload" class="pure-button pure-button-primary">
+</fieldset>
+</form>
 <script>
 var expire = document.getElementsByName('expire')[0];
 var expDateField = document.getElementsByName('expire_date')[0];
@@ -27,7 +34,10 @@ expire.addEventListener('click', function(event) {
 	expDateField.required = !expDateField.required;
 	expTimeField.required = !expTimeField.required;
 })
+var file = document.getElementsByName('file_up')[0];
+var selected_file = document.getElementById('selected_file');
+file.addEventListener('change', function(event) {
+	selected_file.innerText = file.files[0].name;
+})
 </script>
-</form>
-</body>
-</html>
+{% endblock %}
