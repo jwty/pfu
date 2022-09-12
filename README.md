@@ -1,5 +1,5 @@
-# pseudocode-file-uploader
-Python file uploader using Flask
+# pfu file uploader
+Python file uploader using Flask. Readme currently outdated and in process of being rewritten.
 
 ## Requirements
 `flask` and `werkzeug`

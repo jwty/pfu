@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  pfu:
+    image: pfu:latest
+    environment:
+      # Make sure to change these to actual secure values; note the double $ character
+      - "PFU_SECRET_KEY=secret"
+      - "PFU_AUTH_SECRET=pbkdf2:sha256:260000$$HGnxHKS9Ffbe8K3l$$e003b7963e4cf49d4e075087a55e90c85345754306a35fc2d9c571c31f19c393"
+    volumes:
+      - "/home/user/docker/pfu/uploads:/uploads"
+      - "/home/user/docker/pfu/data:/data"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pfu.rule=Host(`upload.example.dev`)"
+      - "traefik.http.routers.pfu.entrypoints=websecure"
+      - "traefik.http.routers.pfu.tls.certresolver=letsencrypt"
+  sws:
+    image: joseluisq/static-web-server:2-alpine
+    environment:
+      - SERVER_LOG_LEVEL=info
+    volumes:
+      - "/home/user/docker/pfu/uploads:/public"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sws.rule=(Host(`upload.example.dev`) && PathPrefix(`/files/`))"
+      - "traefik.http.middlewares.sws-stripprefix.stripprefix.prefixes=/files"
+      - "traefik.http.routers.sws.middlewares=sws-stripprefix"
+      - "traefik.http.routers.sws.entrypoints=websecure"
+      - "traefik.http.routers.sws.tls.certresolver=letsencrypt"
+
+networks:
+  proxy:
+    external: true

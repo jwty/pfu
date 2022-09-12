@@ -1,6 +1,7 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}
 {% block title %}Delete {{ filename }}{% endblock %}
 {% block content %}
+<!-- TODO: Touch up this form as well -->
 <form action="/delete/{{ filename }}" method="post" enctype="multipart/form-data" class="pure-form">
 File <a href="{{ url_root }}/{{ filename }}">{{ filename }}</a> will be deleted. This action cannot be undone.<br>
 <div class="pad">

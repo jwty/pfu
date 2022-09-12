@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Upload{% endblock %}
+{% block content %}
+<!-- TODO: Rewrite this form to Flask-WTF -->
+<form action="/upload" method="post" enctype="multipart/form-data">
+<input class="form-control form-control-lg mb-3" type="file" id="file_up" name="file_up" required>
+<div class="mb-3">
+<div class="form-check">
+<input class="form-check-input" type="checkbox" id="keep" name="keep">
+<label class="form-check-label">Keep original filename?</label>
+</div>
+<div class="form-check">
+<input class="form-check-input" type="checkbox" name="expire">
+<label class="form-check-label">Set expiration date/time?</label>
+<!-- TODO: Style date and time input fields for consistent look -->
+<input type="date" name="expire_date" value="{{ date_now }}">
+<input type="time" name="expire_time" value="{{ time_now }}">
+</div>
+</div>
+<div class="mb-3">
+<label for="description" class="form-label">Description</label>
+<textarea class="form-control" rows="5" id="description" name="description"></textarea>
+</div>
+<div class="mb-3">
+<label for="secret" class="form-label">Secret key</label>
+<input class="form-control" type="password" id="secret" name="secret" required>
+</div>
+<button class="btn btn-primary" type="submit">Upload</button>
+</form>
+
+<!-- Script for enabling/disabling date and time fields -->
+<script>
+var expire = document.getElementsByName('expire')[0];
+var expDateField = document.getElementsByName('expire_date')[0];
+var expTimeField = document.getElementsByName('expire_time')[0];
+expDateField.disabled = true;
+expTimeField.disabled = true;
+expDateField.required = false;
+expDateField.required = false;
+expire.addEventListener('click', function(event) {
+	expDateField.disabled = !expDateField.disabled;
+	expTimeField.disabled = !expTimeField.disabled;
+	expDateField.required = !expDateField.required;
+	expTimeField.required = !expTimeField.required;
+})
+</script>
+{% endblock %}

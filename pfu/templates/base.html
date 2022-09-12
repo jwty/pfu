@@ -1,0 +1,42 @@
+{% from 'bootstrap5/nav.html' import render_nav_item %}
+{% from 'bootstrap5/utils.html' import render_messages %}
+<!doctype html>
+<html lang="en">
+<head>
+	{% block head %}
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+	<title>{% block title%}{% endblock %} - pfu web interface</title>
+	{{ bootstrap.load_css() }}
+	{% block styles %}
+	{% endblock %}
+	{% endblock %}
+</head>
+<body>
+<nav class="navbar navbar-expand-lg mb-3">
+	<div class="container">
+		<span class="navbar-brand mb-0 h1 fw-bold">pfu</span>
+		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar"><span class="navbar-toggler-icon"></span></button>
+		<div class="collapse navbar-collapse" id="navbar">
+		<!-- Navbar contents -->
+		<ul class="navbar-nav me-auto">
+			{{ render_nav_item('index', 'Home', use_li=True) }}
+	        <!-- <li class="nav-item"><a class="nav-link" href="#">Placeholder</a></li> -->
+		</ul>
+		<!--Logout/login section placeholder-->
+		<!-- <ul class="navbar-nav ms-auto">
+			<span class="navbar-text"><span class="text-muted">Logged in as </span><span class="text-light fw-bold">Username</span></span>
+			<li class="nav-item"><a class="nav-link" href="#">Logout</a></li>
+		</ul> -->
+		</div>
+	</div>
+</nav>
+<main class="container">
+{% block content %}{% endblock %}
+</main>
+{{ bootstrap.load_js() }}
+{% block scripts %}
+{% endblock %}
+</body>
+</html>

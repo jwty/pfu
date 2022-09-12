@@ -1,9 +1,11 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}
 {% block title %}{{ status|capitalize }}{% endblock %}
 {% block content %}
+<!-- TODO: This is ugly and awkward -->
+<h1>{{ status }}</h1>
 <ul class="align">
 {% for key, value in data.items() %}
-<li><b>{{ key }}</b><span class="break">{{ value|urlize }}</span></li>
+<li><b>{{ key }}</b> <span class="break">{{ value|urlize }}</span></li>
 {% endfor %}
 </ul>
 {% endblock %}
