@@ -1,27 +1,16 @@
-from pfu import app
 import os
 from hashlib import md5
 from peewee import *
 from playhouse.shortcuts import model_to_dict
+from pfu.config import Config
 
-database = SqliteDatabase(app.config["DATABASE"])
+database = SqliteDatabase(Config.DATABASE)
 
-
-def initialize_db():
+def initialize_db(app):
     database.connect()
     database.create_tables([Files])
     database.close()
-
-
-@app.before_request
-def before_request():
-    database.connect()
-
-
-@app.after_request
-def after_request(response):
-    database.close()
-    return response
+    return database
 
 
 class BaseModel(Model):
@@ -46,7 +35,7 @@ def add_file_to_db(original_filename, description, new_filename, upload_date, ex
     return file
 
 
-def delete_by_filename(filename):
+def delete_by_filename(app, filename):
     Files.delete().where(Files.new_filename == filename).execute()
     os.remove(os.path.join(app.config['UPLOAD_DIR'], filename))
 
@@ -67,7 +56,7 @@ def get_file_by_filename(filename):
     return model_to_dict(file)
 
 
-def calc_md5(file_up):
+def calc_md5(app, file_up):
     md5_obj = md5()
     chunk_size = app.config['CHUNK_SIZE']
     file_buffer = file_up.read(chunk_size)

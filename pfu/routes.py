@@ -1,5 +1,5 @@
-from pfu import app, db
-from flask import render_template, request, jsonify
+from pfu import db
+from flask import Blueprint, current_app, render_template, request, jsonify
 from datetime import datetime
 from time import time
 import secrets
@@ -9,6 +9,10 @@ from werkzeug.utils import secure_filename
 from werkzeug import exceptions as werkzeug_exceptions
 
 
+# TODO: Organize views into blueprints
+bp = Blueprint('main', __name__)
+
+
 def generate_response(json_requested, status, data):
     if json_requested:
         return jsonify(status=status, data=data)
@@ -16,14 +20,14 @@ def generate_response(json_requested, status, data):
         return render_template('generic_response.html', status=status, data=data)
 
 
-@app.route('/')
+@bp.route('/')
 def index():
     date_now = datetime.now().strftime("%Y-%m-%d")
     time_now = datetime.now().strftime("%H:%M")
     return render_template('index.html', default_date=date_now, default_time=time_now)
 
 
-@app.route('/upload', methods=['POST'])
+@bp.route('/upload', methods=['POST'])
 def upload_file():
     json_requested = True if 'json' in request.args else False
     # TODO: Maximum length of description field
@@ -31,11 +35,13 @@ def upload_file():
     try:
         file_up = request.files['file_up']
         secret = request.form['secret']
+        print(secret)
+        print(current_app.config['AUTH_SECRET'])
     except werkzeug_exceptions.BadRequestKeyError:
         return generate_response(json_requested, 'error', {'message': 'empty form'}), 400
-    if not check_password_hash(app.config['AUTH_SECRET'], secret):
+    if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
         return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
-    md5_sum = db.calc_md5(file_up)
+    md5_sum = db.calc_md5(current_app, file_up)
     if 'expire' in request.form:
         expire_date = request.form['expire_date']
         expire_time = request.form['expire_time']
@@ -54,16 +60,16 @@ def upload_file():
             new_filename = '{}-{}{}'.format(filename_root, random_string, filename_ext)
         else:
             new_filename = random_string + filename_ext
-        file_path = os.path.join(app.config['UPLOAD_DIR'], new_filename)
+        file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
         db.add_file_to_db(file_up.filename, description, new_filename, int(time()), expire_date, md5_sum)
-    file_url = '{}{}{}'.format(request.url_root, app.config['FILE_URL_PREFIX'], new_filename)
+    file_url = '{}{}{}'.format(request.url_root, current_app.config['FILE_URL_PREFIX'], new_filename)
     delete_url = '{}delete/{}'.format(request.url_root, new_filename)
     message = {'file': file_up.filename, 'file_url': file_url, 'delete_url': delete_url, 'description': description}
     return generate_response(json_requested, 'success', message)
 
 
-@app.route('/delete/<filename>', methods=['GET', 'POST'])
+@bp.route('/delete/<filename>', methods=['GET', 'POST'])
 def delete_file(filename):
     json_requested = True if 'json' in request.args else False
     if db.get_file_by_filename(filename):
@@ -72,26 +78,26 @@ def delete_file(filename):
                 secret = request.form['secret']
             except werkzeug_exceptions.BadRequestKeyError:
                 return generate_response(json_requested, 'error', {'message': 'empty form'}), 400
-            if not check_password_hash(app.config['AUTH_SECRET'], secret):
+            if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
                 return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
             try:
-                db.delete_by_filename(filename)
+                db.delete_by_filename(current_app, filename)
             except Exception as e:
                 return generate_response(json_requested, 'error', {'message': 'couldnt delete file - {}'.format(e)}), 500
             return generate_response(json_requested, 'success', {'message': 'file deleted'})
         else:
-            return render_template('delete.html', prefix=app.config['FILE_URL_PREFIX'], filename=filename)
+            return render_template('delete.html', prefix=current_app.config['FILE_URL_PREFIX'], filename=filename)
     else:
         return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 500
 
 
 # TODO: this
-# @app.route('/details/<filename>')
+# @bp.route('/details/<filename>')
 # def file_details(filename):
 #     return
 
 
 # TODO: and this
-# @app.route('/admin')
+# @bp.route('/admin')
 # def admin():
 #     return render_template('admin.html')

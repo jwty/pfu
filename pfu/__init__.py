@@ -1,18 +1,26 @@
 from flask import Flask
 from flask_bootstrap import Bootstrap5
+from pfu.db import initialize_db
+from pfu.config import Config
+from pfu.routes import bp
 
-app = Flask(__name__)
-bootstrap = Bootstrap5(app)
+bootstrap = Bootstrap5()
 
-app.config.from_prefixed_env(prefix="PFU")
-app.secret_key = app.config["SECRET_KEY"]
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)
+    bootstrap.init_app(app)
+    app.register_blueprint(bp)
+    database = initialize_db(app)
 
-from pfu import routes, db
+    @app.before_request
+    def before_request():
+        database.connect()
 
-db.initialize_db()
+    @app.after_request
+    def after_request(response):
+        database.close()
+        return response
 
-# import subprocess
-# __version__ = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode()
-# @app.context_processor
-# def default_data():
-#     return dict(version=__version__)
+    return app
+
