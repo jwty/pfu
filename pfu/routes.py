@@ -35,8 +35,6 @@ def upload_file():
     try:
         file_up = request.files['file_up']
         secret = request.form['secret']
-        print(secret)
-        print(current_app.config['AUTH_SECRET'])
     except werkzeug_exceptions.BadRequestKeyError:
         return generate_response(json_requested, 'error', {'message': 'empty form'}), 400
     if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
