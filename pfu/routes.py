@@ -80,7 +80,7 @@ def delete_file(filename):
                 return generate_response(json_requested, 'error', {'message': 'couldnt delete file - {}'.format(e)}), 500
             return generate_response(json_requested, 'success', {'message': 'file deleted'})
         else:
-            return render_template('delete.html', filename=filename)
+            return render_template('delete.html', prefix=app.config['FILE_URL_PREFIX'], filename=filename)
     else:
         return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 500
 
