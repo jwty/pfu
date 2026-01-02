@@ -1,0 +1,13 @@
+[project]
+name = "pfu"
+version = "2022.0.0"
+description = "Python file uploader using Flask"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "bootstrap-flask>=2.5.0",
+    "flask>=3.1.2",
+    "peewee>=3.18.3",
+    "waitress>=3.0.2",
+    "werkzeug>=3.1.4",
+]
