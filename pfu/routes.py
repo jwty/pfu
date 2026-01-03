@@ -1,5 +1,5 @@
-from pfu import db
-from flask import Blueprint, current_app, render_template, request, jsonify
+from pfu import db, utils
+from flask import Blueprint, current_app, render_template, request, jsonify, url_for
 from datetime import datetime
 from time import time
 import secrets
@@ -84,7 +84,15 @@ def delete_file(filename):
                 return generate_response(json_requested, 'error', {'message': 'couldnt delete file - {}'.format(e)}), 500
             return generate_response(json_requested, 'success', {'message': 'file deleted'})
         else:
-            return render_template('delete.html', prefix=current_app.config['FILE_URL_PREFIX'], filename=filename)
+            file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
+            # details_url = url_for('mail.file_details', filename=filename)
+            message = utils.Messages.DELETE_CONFIRM.format(file_url=file_url, filename=filename, details_url='')
+            return render_template('prompt_secret.html',
+                                    title=f"Delete {filename}",
+                                    message=message,
+                                    action_url=url_for('main.delete_file', filename=filename),
+                                    button_text="Delete",
+                                    button_class="btn-danger")
     else:
         return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 500
 

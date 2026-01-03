@@ -1,0 +1,2 @@
+class Messages:
+    DELETE_CONFIRM = 'File <a href="{file_url}">{filename}</a><!-- <a href="{details_url}">(details)</a> --> will be deleted. This action cannot be undone. Type in your secret key to confirm:'
