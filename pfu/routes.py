@@ -20,6 +20,28 @@ def generate_response(json_requested, status, data):
         return render_template('generic_response.html', status=status, data=data)
 
 
+def prepare_file_details(file_data):
+    base_url = request.url_root
+    file_prefix = current_app.config['FILE_URL_PREFIX']
+    new_filename = file_data['new_filename']
+    file_url = f'{base_url}{file_prefix}{new_filename}'
+    delete_url = f'{base_url}delete/{new_filename}'
+    details_url = f'{base_url}details/{new_filename}'
+    file_details = {
+        'original_filename': file_data['original_filename'],
+        'new_filename': new_filename,
+        'file_url': file_url,
+        'delete_url': delete_url,
+        'details_url': details_url,
+        'checksum': file_data['checksum'],
+        # TODO: Handle multi-line descriptions
+        'description': file_data['description'],
+        'upload_date': file_data['upload_date'],
+        'expire_date': file_data['expire_date']
+    }
+    return file_details
+
+
 @bp.route('/')
 def index():
     date_now = datetime.now().strftime("%Y-%m-%d")
@@ -62,9 +84,9 @@ def upload_file():
         file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
         db.add_file_to_db(file_up.filename, description, new_filename, int(time()), expire_date, md5_sum)
-    file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{new_filename}'
-    message = {'file': file_up.filename, 'file_url': file_url, 'delete_url': url_for('main.delete_file', filename=filename), 'description': description}
-    return generate_response(json_requested, 'success', message)
+    # If the file already exists, reuse the already fetched data
+    file_data = existing_file or db.get_file_by_filename(new_filename)
+    return generate_response(json_requested, 'success', prepare_file_details(file_data))
 
 
 @bp.route('/delete/<filename>', methods=['GET', 'POST'])
@@ -85,8 +107,8 @@ def delete_file(filename):
             return generate_response(json_requested, 'success', {'message': 'file deleted'})
         else:
             file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
-            # details_url = url_for('mail.file_details', filename=filename)
-            message = utils.Messages.DELETE_CONFIRM.format(file_url=file_url, filename=filename, details_url='')
+            details_url = url_for('mail.file_details', filename=filename)
+            message = utils.Messages.DELETE_CONFIRM.format(file_url=file_url, filename=filename, details_url=details_url)
             return render_template('prompt_secret.html',
                                     title=f"Delete {filename}",
                                     message=message,
@@ -97,10 +119,25 @@ def delete_file(filename):
         return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 500
 
 
-# TODO: this
-# @bp.route('/details/<filename>')
-# def file_details(filename):
-#     return
+@bp.route('/details/<filename>', methods=['GET', 'POST'])
+def file_details(filename):
+    json_requested = True if 'json' in request.args else False
+    secret = request.form.get('secret')
+    # If no secret provided and no json requested render the entry form
+    if not secret and not json_requested:
+        file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
+        message = utils.Messages.DETAILS_PROMPT.format(file_url=file_url, filename=filename)
+        return render_template('prompt_secret.html',
+                                title="Secret required",
+                                message=message,
+                                action_url=url_for('main.file_details', filename=filename),
+                                json_requested=json_requested)
+    if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
+        return generate_response(json_requested, 'error', {'message': 'unaothorized (wrong/no secret provided)'}), 401
+    file_data = db.get_file_by_filename(filename)
+    if not file_data:
+        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
+    return generate_response(json_requested, 'success', prepare_file_details(file_data))
 
 
 # TODO: and this
