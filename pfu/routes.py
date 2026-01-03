@@ -14,10 +14,19 @@ bp = Blueprint('main', __name__)
 
 
 def generate_response(json_requested, status, data):
+    data = format_dates(data)
     if json_requested:
         return jsonify(status=status, data=data)
     else:
         return render_template('generic_response.html', status=status, data=data)
+
+
+def format_dates(data):
+    for key in ['upload_date', 'expire_date']:
+        if key in data:
+            dt = datetime.fromtimestamp(data[key]).astimezone()
+            data[key] = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
+    return data
 
 
 def prepare_file_details(file_data):
