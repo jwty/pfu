@@ -10,6 +10,8 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     bootstrap.init_app(app)
+    app.jinja_env.trim_blocks = True
+    app.jinja_env.lstrip_blocks = True
     app.register_blueprint(bp)
     database = initialize_db(app)
 
@@ -23,4 +25,3 @@ def create_app(config_class=Config):
         return response
 
     return app
-

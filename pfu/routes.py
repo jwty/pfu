@@ -1,12 +1,12 @@
-from pfu import db, utils
-from flask import Blueprint, current_app, render_template, request, jsonify, url_for
+import os
+import secrets
 from datetime import datetime
 from time import time
-import secrets
-import os
+from flask import Blueprint, current_app, render_template, request, jsonify, url_for
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug import exceptions as werkzeug_exceptions
+from pfu import db, utils
 
 
 # TODO: Organize views into blueprints
@@ -40,6 +40,7 @@ def upload_file():
     if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
         return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
     md5_sum = db.calc_md5(current_app, file_up)
+    # TODO: Handle Bad Request error when submitting a form with 'expire' enabled and empty 'expire_date', 'expire_time'
     if 'expire' in request.form:
         expire_date = request.form['expire_date']
         expire_time = request.form['expire_time']
@@ -55,15 +56,14 @@ def upload_file():
         filename_ext = os.path.splitext(filename)[1]
         random_string = secrets.token_urlsafe(5)
         if 'keep' in request.form:
-            new_filename = '{}-{}{}'.format(filename_root, random_string, filename_ext)
+            new_filename = f'{filename_root}-{random_string}{filename_ext}'
         else:
             new_filename = random_string + filename_ext
         file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
         file_up.save(file_path)
         db.add_file_to_db(file_up.filename, description, new_filename, int(time()), expire_date, md5_sum)
-    file_url = '{}{}{}'.format(request.url_root, current_app.config['FILE_URL_PREFIX'], new_filename)
-    delete_url = '{}delete/{}'.format(request.url_root, new_filename)
-    message = {'file': file_up.filename, 'file_url': file_url, 'delete_url': delete_url, 'description': description}
+    file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{new_filename}'
+    message = {'file': file_up.filename, 'file_url': file_url, 'delete_url': url_for('main.delete_file', filename=filename), 'description': description}
     return generate_response(json_requested, 'success', message)
 
 
@@ -81,7 +81,7 @@ def delete_file(filename):
             try:
                 db.delete_by_filename(current_app, filename)
             except Exception as e:
-                return generate_response(json_requested, 'error', {'message': 'couldnt delete file - {}'.format(e)}), 500
+                return generate_response(json_requested, 'error', {'message': f'couldnt delete file - {e}'}), 500
             return generate_response(json_requested, 'success', {'message': 'file deleted'})
         else:
             file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
