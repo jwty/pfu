@@ -23,7 +23,7 @@ def generate_response(json_requested, status, data):
 
 def format_dates(data):
     for key in ['upload_date', 'expire_date']:
-        if key in data:
+        if key in data and isinstance(key, int):
             dt = datetime.fromtimestamp(data[key]).astimezone()
             data[key] = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
     return data
@@ -100,37 +100,37 @@ def upload_file():
 
 @bp.route('/delete/<filename>', methods=['GET', 'POST'])
 def delete_file(filename):
-    json_requested = True if 'json' in request.args else False
-    if db.get_file_by_filename(filename):
-        if request.method == 'POST':
-            try:
-                secret = request.form['secret']
-            except werkzeug_exceptions.BadRequestKeyError:
-                return generate_response(json_requested, 'error', {'message': 'empty form'}), 400
-            if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-                return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
-            try:
-                db.delete_by_filename(current_app, filename)
-            except Exception as e:
-                return generate_response(json_requested, 'error', {'message': f'couldnt delete file - {e}'}), 500
-            return generate_response(json_requested, 'success', {'message': 'file deleted'})
-        else:
-            file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
-            details_url = url_for('mail.file_details', filename=filename)
-            message = utils.Messages.DELETE_CONFIRM.format(file_url=file_url, filename=filename, details_url=details_url)
-            return render_template('prompt_secret.html',
-                                    title=f"Delete {filename}",
-                                    message=message,
-                                    action_url=url_for('main.delete_file', filename=filename),
-                                    button_text="Delete",
-                                    button_class="btn-danger")
-    else:
-        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 500
+    json_requested = 'json' in request.args
+    if not db.get_file_by_filename(filename):
+        return generate_response(json_requested, 'error', 'no such file in db'), 404
+    if request.method == 'GET':
+        file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
+        details_url = url_for('main.file_details', filename=filename)
+        message = utils.Messages.DELETE_CONFIRM.format(file_url=file_url, filename=filename, details_url=details_url)
+        return render_template('prompt_secret.html',
+                                title=f'Delete {filename}',
+                                message=message,
+                                action_url=url_for('main.delete_file', filename=filename),
+                                button_text='Delete',
+                                button_class='btn-danger')
+    secret = request.form.get('secret')
+    if not secret:
+        return generate_response(json_requested, 'error', {'message': 'empty form'}), 400
+    if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
+        return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
+    try:
+        db.delete_by_filename(filename)
+        return generate_response(json_requested, 'success', {'message': 'file deleted'})
+    except Exception as e:
+        return generate_response(json_requested, 'error', {'message': f'unable to delete file: {e}'}), 500
 
 
 @bp.route('/details/<filename>', methods=['GET', 'POST'])
 def file_details(filename):
-    json_requested = True if 'json' in request.args else False
+    json_requested = 'json' in request.args
+    file_data = db.get_file_by_filename(filename)
+    if not file_data:
+        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
     secret = request.form.get('secret')
     # If no secret provided and no json requested render the entry form
     if not secret and not json_requested:
@@ -143,9 +143,6 @@ def file_details(filename):
                                 json_requested=json_requested)
     if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
         return generate_response(json_requested, 'error', {'message': 'unaothorized (wrong/no secret provided)'}), 401
-    file_data = db.get_file_by_filename(filename)
-    if not file_data:
-        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
     return generate_response(json_requested, 'success', prepare_file_details(file_data))
 
 

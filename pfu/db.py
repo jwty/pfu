@@ -35,9 +35,9 @@ def add_file_to_db(original_filename, description, new_filename, upload_date, ex
     return file
 
 
-def delete_by_filename(app, filename):
+def delete_by_filename(filename):
     Files.delete().where(Files.new_filename == filename).execute()
-    os.remove(os.path.join(app.config['UPLOAD_DIR'], filename))
+    os.remove(os.path.join(Config.UPLOAD_DIR, filename))
 
 
 def get_file_by_checksum(checksum):
