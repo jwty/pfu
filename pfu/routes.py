@@ -5,7 +5,6 @@ from time import time
 from flask import Blueprint, current_app, render_template, request, jsonify, url_for
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
-from werkzeug import exceptions as werkzeug_exceptions
 from pfu import db, utils
 
 
@@ -64,10 +63,10 @@ def upload_file():
     file_up = request.files.get('file_up')
     secret = request.form.get('secret')
     description = request.form.get('description')
-    if not file_up or not secret:
-        return generate_response(json_requested, 'error', {'message': 'file/secret missing'}), 400
-    if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
+    if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
+        return generate_response(json_requested, 'error', {'message': 'unauthorised'}), 401
+    if not file_up:
+        return generate_response(json_requested, 'error', {'message': 'no file selected'}), 400
     md5_sum = db.calc_md5(file_up)
     # Simple duplicate avoidance - if the file already exists, do not duplicate it and instead return details for it
     if existing_file := db.get_file_by_checksum(md5_sum):
@@ -101,8 +100,6 @@ def upload_file():
 @bp.route('/delete/<filename>', methods=['GET', 'POST'])
 def delete_file(filename):
     json_requested = 'json' in request.args
-    if not db.get_file_by_filename(filename):
-        return generate_response(json_requested, 'error', 'no such file in db'), 404
     if request.method == 'GET':
         file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
         details_url = url_for('main.file_details', filename=filename)
@@ -114,10 +111,10 @@ def delete_file(filename):
                                 button_text='Delete',
                                 button_class='btn-danger')
     secret = request.form.get('secret')
-    if not secret:
-        return generate_response(json_requested, 'error', {'message': 'empty form'}), 400
-    if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
+    if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
+        return generate_response(json_requested, 'error', {'message': 'unaothorised'}), 401
+    if not db.get_file_by_filename(filename):
+        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
     try:
         db.delete_by_filename(filename)
         return generate_response(json_requested, 'success', {'message': 'file deleted'})
@@ -128,25 +125,17 @@ def delete_file(filename):
 @bp.route('/details/<filename>', methods=['GET', 'POST'])
 def file_details(filename):
     json_requested = 'json' in request.args
-    file_data = db.get_file_by_filename(filename)
-    if not file_data:
-        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
-    secret = request.form.get('secret')
-    # If no secret provided and no json requested render the entry form
-    if not secret and not json_requested:
+    if request.method == 'GET':
         file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
         message = utils.Messages.DETAILS_PROMPT.format(file_url=file_url, filename=filename)
         return render_template('prompt_secret.html',
-                                title="Secret required",
+                                title='Secret required',
                                 message=message,
-                                action_url=url_for('main.file_details', filename=filename),
-                                json_requested=json_requested)
+                                action_url=url_for('main.file_details', filename=filename))
+    secret = request.form.get('secret')
     if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'unaothorized (wrong/no secret provided)'}), 401
+        return generate_response(json_requested, 'error', {'message': 'unauthorised'}), 401
+    file_data = db.get_file_by_filename(filename)
+    if not file_data:
+        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
     return generate_response(json_requested, 'success', prepare_file_details(file_data))
-
-
-# TODO: and this
-# @bp.route('/admin')
-# def admin():
-#     return render_template('admin.html')

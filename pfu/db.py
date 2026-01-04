@@ -13,6 +13,14 @@ def initialize_db():
     return database
 
 
+def configure_db(app):
+    database = initialize_db()
+    @app.teardown_request
+    def teardown_request(exception):
+        if not database.is_closed():
+            database.close()
+
+
 class BaseModel(Model):
     class Meta:
         database = database
