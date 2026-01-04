@@ -13,7 +13,7 @@ def create_app(config_class=Config):
     app.jinja_env.trim_blocks = True
     app.jinja_env.lstrip_blocks = True
     app.register_blueprint(bp)
-    database = initialize_db(app)
+    database = initialize_db()
 
     @app.before_request
     def before_request():

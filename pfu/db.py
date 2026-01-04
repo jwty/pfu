@@ -6,7 +6,7 @@ from pfu.config import Config
 
 database = SqliteDatabase(Config.DATABASE)
 
-def initialize_db(app):
+def initialize_db():
     database.connect()
     database.create_tables([Files])
     database.close()
@@ -31,8 +31,7 @@ class Files(BaseModel):
 
 
 def add_file_to_db(original_filename, description, new_filename, upload_date, expire_date, checksum):
-    file = Files.create(original_filename=original_filename, description=description, new_filename=new_filename, upload_date=upload_date, expire_date=expire_date, checksum=checksum)
-    return file
+    Files.create(original_filename=original_filename, description=description, new_filename=new_filename, upload_date=upload_date, expire_date=expire_date, checksum=checksum)
 
 
 def delete_by_filename(filename):
@@ -56,9 +55,9 @@ def get_file_by_filename(filename):
     return model_to_dict(file)
 
 
-def calc_md5(app, file_up):
+def calc_md5(file_up):
     md5_obj = md5()
-    chunk_size = app.config['CHUNK_SIZE']
+    chunk_size = Config.CHUNK_SIZE
     file_buffer = file_up.read(chunk_size)
     while file_buffer:
         md5_obj.update(file_buffer)

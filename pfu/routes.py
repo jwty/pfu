@@ -36,7 +36,7 @@ def prepare_file_details(file_data):
     file_url = f'{base_url}{file_prefix}{new_filename}'
     delete_url = f'{base_url}delete/{new_filename}'
     details_url = f'{base_url}details/{new_filename}'
-    file_details = {
+    file_details_dict = {
         'original_filename': file_data['original_filename'],
         'new_filename': new_filename,
         'file_url': file_url,
@@ -48,7 +48,7 @@ def prepare_file_details(file_data):
         'upload_date': file_data['upload_date'],
         'expire_date': file_data['expire_date']
     }
-    return file_details
+    return file_details_dict
 
 
 @bp.route('/')
@@ -60,41 +60,41 @@ def index():
 
 @bp.route('/upload', methods=['POST'])
 def upload_file():
-    json_requested = True if 'json' in request.args else False
-    # TODO: Maximum length of description field
-    description = request.form['description'] if 'description' in request.form else None
-    try:
-        file_up = request.files['file_up']
-        secret = request.form['secret']
-    except werkzeug_exceptions.BadRequestKeyError:
-        return generate_response(json_requested, 'error', {'message': 'empty form'}), 400
+    json_requested = 'json' in request.args
+    file_up = request.files.get('file_up')
+    secret = request.form.get('secret')
+    description = request.form.get('description')
+    if not file_up or not secret:
+        return generate_response(json_requested, 'error', {'message': 'file/secret missing'}), 400
     if not check_password_hash(current_app.config['AUTH_SECRET'], secret):
         return generate_response(json_requested, 'error', {'message': 'wrong secret'}), 401
-    md5_sum = db.calc_md5(current_app, file_up)
-    # TODO: Handle Bad Request error when submitting a form with 'expire' enabled and empty 'expire_date', 'expire_time'
-    if 'expire' in request.form:
-        expire_date = request.form['expire_date']
-        expire_time = request.form['expire_time']
-        expire_date = int(datetime.strptime(expire_date + expire_time, '%Y-%m-%d%H:%M').strftime('%s'))
-    else:
-        expire_date = None
+    md5_sum = db.calc_md5(file_up)
+    # Simple duplicate avoidance - if the file already exists, do not duplicate it and instead return details for it
     if existing_file := db.get_file_by_checksum(md5_sum):
-        # If the file already exists, do not duplicate it and instead return URLs for already existing file
-        new_filename = existing_file['new_filename']
+        return generate_response(json_requested, 'success', prepare_file_details(existing_file))
+    expire_timestamp = None
+    if 'expire' in request.form:
+        expire_date = request.form.get('expire_date')
+        expire_time = request.form.get('expire_time')
+        if not expire_date or not expire_time:
+            return generate_response(json_requested, 'error', {'message': 'expiration enabled but date/time missing'}), 400
+        try:
+            dt = datetime.strptime(f'{expire_date}{expire_time}', '%Y-%m-%d%H:%M')
+            expire_timestamp = int(dt.timestamp())
+        except ValueError:
+            return generate_response(json_requested, 'error', {'message': 'invalid expiration date/time'}), 400
+    filename = secure_filename(file_up.filename)
+    filename_root, filename_ext = os.path.splitext(filename)
+    new_filename_root = secrets.token_urlsafe(current_app.config['FILENAME_LENGTH'])
+    if 'keep' in request.form:
+        # Amend original filename to random token to avoid conflicts when uploading different files with same filenames
+        new_filename = f'{filename_root}-{new_filename_root}{filename_ext}'
     else:
-        filename = secure_filename(file_up.filename)
-        filename_root = os.path.splitext(filename)[0]
-        filename_ext = os.path.splitext(filename)[1]
-        random_string = secrets.token_urlsafe(5)
-        if 'keep' in request.form:
-            new_filename = f'{filename_root}-{random_string}{filename_ext}'
-        else:
-            new_filename = random_string + filename_ext
-        file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
-        file_up.save(file_path)
-        db.add_file_to_db(file_up.filename, description, new_filename, int(time()), expire_date, md5_sum)
-    # If the file already exists, reuse the already fetched data
-    file_data = existing_file or db.get_file_by_filename(new_filename)
+        new_filename = f'{new_filename_root}{filename_ext}'
+    file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
+    file_up.save(file_path)
+    db.add_file_to_db(file_up.filename, description, new_filename, int(time()), expire_timestamp, md5_sum)
+    file_data = db.get_file_by_filename(new_filename)
     return generate_response(json_requested, 'success', prepare_file_details(file_data))
 
 
