@@ -1,12 +1,44 @@
 {% extends "base.html" %}
 {% block title %}{{ status|capitalize }}{% endblock %}
 {% block content %}
-<!-- TODO: Replace with flash messages maybe -->
-<p>Operation completed with following status: <p class="font-monospace">{{ status }}</p></p>
-<p>And returned following data:</p>
-<ul class="align">
-{% for key, value in data.items() %}
-<li><b>{{ key }}</b> <span class="break">{{ value|urlize }}</span></li>
-{% endfor %}
-</ul>
+{% if status == 'success' or status == 'error' %}
+<div class="alert {% if status == 'success' %}alert-success{% else %}alert-danger{% endif %}" role="alert">
+    <h4 class="alert-heading">{{ status|capitalize }}</h4>
+    {% if status == 'error' and data.message %}
+    <p class="mb-0">{{ data.message|capitalize }}</p>
+    {% else %}
+    <p>Operation completed successfully.</p>
+    {% endif %}
+</div>
+{% endif %}
+{% if data and status != 'error' %}
+<div class="card">
+    <div class="card-header">
+    {% if status == 'details' %}
+    File details for <strong>{{ data.original_filename }}</strong>
+    {% else %}
+    Response Data
+    {% endif %}
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead class="table-light"><tr><th scope="col" style="width: 30%">Key</th><th scope="col">Value</th></tr></thead>
+            <tbody>
+                {% for key, value in data.items() %}
+                <tr>
+                    <td class="fw-bold">{{ key|replace('_', ' ')|title }}</td>
+                    <td class="text-break">
+                        {% if key == 'description' %}
+                        <span style="white-space: pre-wrap;">{{ value|urlize }}</span>
+                        {% else %}
+                        {{ value|urlize }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

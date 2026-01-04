@@ -42,7 +42,6 @@ def prepare_file_details(file_data):
         'delete_url': delete_url,
         'details_url': details_url,
         'checksum': file_data['checksum'],
-        # TODO: Handle multi-line descriptions
         'description': file_data['description'],
         'upload_date': file_data['upload_date'],
         'expire_date': file_data['expire_date']
@@ -112,7 +111,7 @@ def delete_file(filename):
                                 button_class='btn-danger')
     secret = request.form.get('secret')
     if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'unaothorised'}), 401
+        return generate_response(json_requested, 'error', {'message': 'unauthorised'}), 401
     if not db.get_file_by_filename(filename):
         return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
     try:
@@ -138,4 +137,4 @@ def file_details(filename):
     file_data = db.get_file_by_filename(filename)
     if not file_data:
         return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
-    return generate_response(json_requested, 'success', prepare_file_details(file_data))
+    return generate_response(json_requested, 'details', prepare_file_details(file_data))
