@@ -15,7 +15,7 @@
 <div class="card">
     <div class="card-header">
     {% if status == 'details' %}
-    File details for <strong>{{ data.original_filename }}</strong>
+    File details for <strong>{{ data.new_filename }}</strong>
     {% else %}
     Response Data
     {% endif %}
@@ -28,8 +28,12 @@
                 <tr>
                     <td class="fw-bold">{{ key|replace('_', ' ')|title }}</td>
                     <td class="text-break">
-                        {% if key == 'description' %}
+                        {% if not value %}
+                        <span class="text-muted fst-italic">(empty)</span>
+                        {% elif key == 'description' %}
                         <span style="white-space: pre-wrap;">{{ value|urlize }}</span>
+                        {% elif key == 'file_size' %}
+                        {{ value|filesizeformat }}
                         {% else %}
                         {{ value|urlize }}
                         {% endif %}

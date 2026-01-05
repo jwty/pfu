@@ -27,19 +27,20 @@ class BaseModel(Model):
 
 
 class Files(BaseModel):
-    checksum = TextField(null=True, unique=True)
+    new_filename = TextField(index=True)
+    original_filename = TextField()
     description = TextField(null=True)
+    checksum = TextField(unique=True)
+    upload_date = IntegerField()
     expire_date = IntegerField(null=True)
-    new_filename = TextField(null=True)
-    original_filename = TextField(null=True)
-    upload_date = IntegerField(null=True)
+    size = IntegerField()
 
     class Meta:
         table_name = 'files'
 
 
-def add_file_to_db(original_filename, description, new_filename, upload_date, expire_date, checksum):
-    Files.create(original_filename=original_filename, description=description, new_filename=new_filename, upload_date=upload_date, expire_date=expire_date, checksum=checksum)
+def add_file_to_db(new_filename, original_filename, description, checksum, upload_date, expire_date, size):
+    Files.create(**locals())
 
 
 def delete_by_filename(filename):

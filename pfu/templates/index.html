@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Upload{% endblock %}
 {% block content %}
-<!-- TODO: Rewrite this form to Flask-WTF -->
 <form action="/upload" method="post" enctype="multipart/form-data">
     <input class="form-control form-control-lg mb-3" type="file" id="file_up" name="file_up" required>
     <div class="mb-3">

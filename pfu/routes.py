@@ -22,7 +22,7 @@ def generate_response(json_requested, status, data):
 
 def format_dates(data):
     for key in ['upload_date', 'expire_date']:
-        if key in data and isinstance(key, int):
+        if key in data and isinstance(data[key], int):
             dt = datetime.fromtimestamp(data[key]).astimezone()
             data[key] = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
     return data
@@ -38,11 +38,12 @@ def prepare_file_details(file_data):
     file_details_dict = {
         'original_filename': file_data['original_filename'],
         'new_filename': new_filename,
+        'file_size': file_data['size'],
+        'description': file_data['description'],
         'file_url': file_url,
         'delete_url': delete_url,
         'details_url': details_url,
         'checksum': file_data['checksum'],
-        'description': file_data['description'],
         'upload_date': file_data['upload_date'],
         'expire_date': file_data['expire_date']
     }
@@ -90,8 +91,12 @@ def upload_file():
     else:
         new_filename = f'{new_filename_root}{filename_ext}'
     file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
-    file_up.save(file_path)
-    db.add_file_to_db(file_up.filename, description, new_filename, int(time()), expire_timestamp, md5_sum)
+    try:
+        file_up.save(file_path)
+    except Exception as e:
+        return generate_response(json_requested, 'error', {'message': f'unable to save file: {e}'}), 500
+    file_size = os.stat(file_path).st_size
+    db.add_file_to_db(new_filename, file_up.filename, description, md5_sum, int(time()), expire_timestamp, file_size)
     file_data = db.get_file_by_filename(new_filename)
     return generate_response(json_requested, 'success', prepare_file_details(file_data))
 
@@ -116,9 +121,9 @@ def delete_file(filename):
         return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
     try:
         db.delete_by_filename(filename)
-        return generate_response(json_requested, 'success', {'message': 'file deleted'})
     except Exception as e:
         return generate_response(json_requested, 'error', {'message': f'unable to delete file: {e}'}), 500
+    return generate_response(json_requested, 'success', {'message': 'file deleted'})
 
 
 @bp.route('/details/<filename>', methods=['GET', 'POST'])
