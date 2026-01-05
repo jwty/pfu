@@ -2,6 +2,4 @@
 __pycache__/
 uploads/
 test-utils/
-*.sublime-workspace
-*.sublime-project
 *.db
