@@ -4,11 +4,12 @@ from peewee import *
 from playhouse.shortcuts import model_to_dict
 from pfu.config import Config
 
-database = SqliteDatabase(Config.DATABASE)
+database_path = os.path.join(Config.DATA_DIR, 'database.db')
+database = SqliteDatabase(database_path, pragmas={'foreign_keys': 1})
 
 def initialize_db():
     database.connect()
-    database.create_tables([Files])
+    database.create_tables([Files, ExpiringFiles, Secrets])
     database.close()
     return database
 
@@ -39,8 +40,20 @@ class Files(BaseModel):
         table_name = 'files'
 
 
+class ExpiringFiles(BaseModel):
+    file = ForeignKeyField(Files, on_delete='CASCADE')
+    expire_date = IntegerField(null=True)
+
+
+class Secrets(BaseModel):
+    secret_name = TextField()
+    secret_hash = TextField(index=True)
+
+
 def add_file_to_db(new_filename, original_filename, description, checksum, upload_date, expire_date, size):
-    Files.create(**locals())
+    file = Files.create(**locals())
+    if expire_date:
+        ExpiringFiles.create(file=file, expire_date=expire_date)
 
 
 def delete_by_filename(filename):

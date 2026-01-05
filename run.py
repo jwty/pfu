@@ -14,6 +14,4 @@ app = create_app()
 
 if __name__ == '__main__':
     logging.info("Starting pfu server...")
-    # TODO: Add configurable host and port to serve
-    # serve(app, host=config.host, port=config.port)
-    serve(app)
+    serve(app, host=app.config['HOSTNAME'], port=app.config['PORT'])
