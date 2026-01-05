@@ -2,9 +2,9 @@ import os
 from hashlib import md5
 from peewee import *
 from playhouse.shortcuts import model_to_dict
-from pfu.config import Config
+from pfu.config import config
 
-database_path = os.path.join(Config.DATA_DIR, 'database.db')
+database_path = os.path.join(config['DATA_DIR'], 'database.db')
 database = SqliteDatabase(database_path, pragmas={'foreign_keys': 1})
 
 def initialize_db():
@@ -58,7 +58,7 @@ def add_file_to_db(new_filename, original_filename, description, checksum, uploa
 
 def delete_by_filename(filename):
     Files.delete().where(Files.new_filename == filename).execute()
-    os.remove(os.path.join(Config.UPLOAD_DIR, filename))
+    os.remove(os.path.join(config['UPLOAD_DIR'], filename))
 
 
 def get_file_by_checksum(checksum):
@@ -79,7 +79,7 @@ def get_file_by_filename(filename):
 
 def calc_md5(file_up):
     md5_obj = md5()
-    chunk_size = Config.CHUNK_SIZE
+    chunk_size = config['CHUNK_SIZE']
     file_buffer = file_up.read(chunk_size)
     while file_buffer:
         md5_obj.update(file_buffer)

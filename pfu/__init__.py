@@ -1,11 +1,11 @@
 from flask import Flask
 from flask_bootstrap import Bootstrap5
 from pfu.db import configure_db
-from pfu.config import Config
+from pfu.config import config_class
 from pfu.routes import bp
 
 
-def create_app(config_class=Config):
+def create_app(config_class=config_class):
     app = Flask(__name__)
     app.config.from_object(config_class)
     bootstrap = Bootstrap5()
