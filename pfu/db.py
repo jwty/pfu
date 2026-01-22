@@ -101,8 +101,11 @@ def get_files_size():
     return Files.select(fn.SUM(Files.size)).scalar() or 0
 
 
-def get_files_page(per_page, page):
-    page_query = PaginatedQuery(Files, per_page, page=page, check_bounds=True)
+def get_files_page(per_page, page, sort_by):
+    if sort_by == 'size':
+        page_query = PaginatedQuery(Files.select().order_by(Files.size.desc()), per_page, page=page, check_bounds=True)
+    else:
+        page_query = PaginatedQuery(Files.select().order_by(Files.upload_date.desc()), per_page, page=page, check_bounds=True)
     files = page_query.get_object_list()
     current_page = page_query.get_page()
     possible_pages = page_query.get_page_count()

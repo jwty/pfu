@@ -62,6 +62,6 @@ def files():
     if page_number < 1:
         flash('Invalid page number', 'error')
         page_number = 1
-    files, current_page, possible_pages = get_files_page(10, page_number)
-    return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages)
-
+    sort_by = request.args.get('sort', 'date')
+    files, current_page, possible_pages = get_files_page(10, page_number, sort_by)
+    return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages, sort_by=sort_by)

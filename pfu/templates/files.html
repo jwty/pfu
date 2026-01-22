@@ -9,17 +9,17 @@
             <th>Filename</th>
             <th>Original Filename</th>
             <th>Description</th>
-            <th>Upload Date</th>
+            <th><a href="{{ url_for('auth.files', sort='date') }}">Upload Date</a></th>
             <th>Expire Date</th>
-            <th>Size</th>
+            <th><a href="{{ url_for('auth.files', sort='size') }}">Size</a></th>
         </tr>
         </thead>
         <tbody>
         {% for file in files %}
         <tr>
-            <td>{{ file.new_filename | filename_truncate(20) }}</td>
-            <td>{{ file.original_filename | filename_truncate(20) }}</td>
-            <td>{% if file.description %}{{ file.description }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
+            <td>{{ file.new_filename | filename_truncate(30) }}</td>
+            <td>{{ file.original_filename | filename_truncate(30) }}</td>
+            <td>{% if file.description %}{{ file.description | truncate(30) }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
             <td>{{ file.upload_date | datetime }}</td>
             <td>{% if file.expire_date %}{{ file.expire_date | datetime }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
             <td>{{ file.size | filesizeformat }}</td>
@@ -32,10 +32,10 @@
     <div class="me-auto">Currently on page {{ current_page }} of {{ possible_pages }}</div>
     <div class="ms-auto">
     {% if current_page > 1 %}
-    <a class="btn btn-primary" href="{{ url_for('auth.files', page=current_page - 1) }}">Previous</a>
+    <a class="btn btn-primary" href="{{ url_for('auth.files', page=current_page - 1, sort=request.args.get('sort', 'date')) }}">Previous</a>
     {% endif %}
     {% if current_page < possible_pages %}
-    <a class="btn btn-primary" href="{{ url_for('auth.files', page=current_page + 1) }}">Next</a>
+    <a class="btn btn-primary" href="{{ url_for('auth.files', page=current_page + 1, sort=request.args.get('sort', 'date')) }}">Next</a>
     {% endif %}
     </div>
 </div>
