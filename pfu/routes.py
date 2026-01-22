@@ -8,8 +8,7 @@ from werkzeug.utils import secure_filename
 from pfu import db, utils
 
 
-# TODO: Organize views into blueprints
-bp = Blueprint('main', __name__)
+main = Blueprint('main', __name__)
 
 
 def generate_response(json_requested, status, data):
@@ -50,14 +49,14 @@ def prepare_file_details(file_data):
     return file_details_dict
 
 
-@bp.route('/')
+@main.route('/')
 def index():
     date_now = datetime.now().strftime("%Y-%m-%d")
     time_now = datetime.now().strftime("%H:%M")
     return render_template('index.html', default_date=date_now, default_time=time_now)
 
 
-@bp.route('/upload', methods=['POST'])
+@main.route('/upload', methods=['POST'])
 def upload_file():
     json_requested = 'json' in request.args
     file_up = request.files.get('file_up')
@@ -101,7 +100,7 @@ def upload_file():
     return generate_response(json_requested, 'success', prepare_file_details(file_data))
 
 
-@bp.route('/delete/<filename>', methods=['GET', 'POST'])
+@main.route('/delete/<filename>', methods=['GET', 'POST'])
 def delete_file(filename):
     json_requested = 'json' in request.args
     if request.method == 'GET':
@@ -126,7 +125,7 @@ def delete_file(filename):
     return generate_response(json_requested, 'success', {'message': 'file deleted'})
 
 
-@bp.route('/details/<filename>', methods=['GET', 'POST'])
+@main.route('/details/<filename>', methods=['GET', 'POST'])
 def file_details(filename):
     json_requested = 'json' in request.args
     if request.method == 'GET':

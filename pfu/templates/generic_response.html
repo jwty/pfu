@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ status|capitalize }}{% endblock %}
 {% block content %}
+<!-- TODO: These should be flashed-->
 {% if status == 'success' or status == 'error' %}
 <div class="alert {% if status == 'success' %}alert-success{% else %}alert-danger{% endif %}" role="alert">
     <h4 class="alert-heading">{{ status|capitalize }}</h4>

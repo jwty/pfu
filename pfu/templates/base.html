@@ -2,34 +2,43 @@
 {% from 'bootstrap5/utils.html' import render_messages %}
 <!doctype html>
 <html lang="en">
-    <head>
-        {% block head %}
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}">
-        <title>{% block title%}{% endblock %} - pfu web interface</title>
-        {{ bootstrap.load_css() }}
-        {% block styles %}
-        {% endblock %}
-        {% endblock %}
-    </head>
-    <body>
-        <nav class="navbar navbar-expand-lg mb-3">
-            <div class="container">
-                <span class="navbar-brand mb-0 h1 fw-bold">pfu</span>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar"><span class="navbar-toggler-icon"></span></button>
-                <div class="collapse navbar-collapse" id="navbar">
-                    <div class="navbar-nav me-auto">
+<head>
+    {% block head %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}">
+    <title>{% block title%}{% endblock %} - pfu web interface</title>
+    {{ bootstrap.load_css() }}
+    {% block styles %}
+    {% endblock %}
+    {% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg mb-3">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1 fw-bold">pfu</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar"><span class="navbar-toggler-icon"></span></button>
+            <div class="collapse navbar-collapse" id="navbar">
+                <div class="navbar-nav me-auto">
                     {{ render_nav_item('main.index', 'Home') }}
-                    </div>
+                </div>
+                <div class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                    <div class="navbar-text me-3">Logged in as <strong>{{ current_user.username }}</strong></div>
+                    {{ render_nav_item('auth.logout', 'Logout') }}
+                    {% else %}
+                    {{ render_nav_item('auth.login', 'Login') }}
+                    {% endif %}
                 </div>
             </div>
-        </nav>
-        <main class="container">
+        </div>
+    </nav>
+    <main class="container">
+        {{ render_messages() }}
         {% block content %}{% endblock %}
-        </main>
-        {{ bootstrap.load_js() }}
-        {% block scripts %}
-        {% endblock %}
-    </body>
+    </main>
+    {{ bootstrap.load_js() }}
+    {% block scripts %}
+    {% endblock %}
+</body>
 </html>
