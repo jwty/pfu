@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, url_for, redirect, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from pfu.auth import User
-from pfu.db import get_files_count, get_files_expiring_count, get_files_size
+from pfu.db import get_files_count, get_files_expiring_count, get_files_size, get_files_page
 
 
 auth = Blueprint('auth', __name__)
@@ -49,3 +49,19 @@ def settings():
     files_expiring_count = get_files_expiring_count()
     files_size = get_files_size()
     return render_template('settings.html', files_count=files_count, files_expiring_count=files_expiring_count, files_size=files_size)
+
+
+@auth.route('/files')
+@login_required
+def files():
+    try:
+        page_number = int(request.args.get('page', 1))
+    except ValueError:
+        flash('Invalid page number', 'error')
+        page_number = 1
+    if page_number < 1:
+        flash('Invalid page number', 'error')
+        page_number = 1
+    files, current_page, possible_pages = get_files_page(10, page_number)
+    return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages)
+

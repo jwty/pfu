@@ -12,24 +12,15 @@ main = Blueprint('main', __name__)
 
 
 def generate_response(json_requested, status, data, redirect_url=None, include_flash=True):
-    data = format_dates(data)
     if json_requested:
         return jsonify(status=status, data=data)
     if include_flash:
         default_msg = 'Operation completed successfully.' if status == 'success' else 'An error occurred during the operation.'
         flash(data.get('message', default_msg), status)
     # If we have detailed data (new upload or file details), show the generic_response page
-    if status == 'success' and 'new_filename' in data:
+    if (status == 'success' and 'new_filename' in data) or status == 'details':
         return render_template('generic_response.html', status=status, data=data)
     return redirect(redirect_url or url_for('main.index'))
-
-
-def format_dates(data):
-    for key in ['upload_date', 'expire_date']:
-        if key in data and isinstance(data[key], int):
-            dt = datetime.fromtimestamp(data[key]).astimezone()
-            data[key] = dt.strftime('%Y-%m-%d %H:%M:%S %Z')
-    return data
 
 
 def prepare_file_details(file_data):
@@ -147,4 +138,4 @@ def file_details(filename):
     if not file_data:
         return generate_response(json_requested, 'error', {'message': f'File {filename} not found.'})
     # No flash message for file details
-    return generate_response(json_requested, 'success', prepare_file_details(file_data), include_flash=False)
+    return generate_response(json_requested, 'details', prepare_file_details(file_data), include_flash=False)

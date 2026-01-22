@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_bootstrap import Bootstrap5
 from pfu.db import configure_db
+from pfu.utils import format_datetime
 from pfu.config import config_class
 from pfu.routes import main
 from pfu.routes_auth import auth
@@ -12,6 +13,7 @@ def create_app(config_class=config_class):
     app.config.from_object(config_class)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
+    app.jinja_env.filters['datetime'] = format_datetime
     bootstrap = Bootstrap5()
     bootstrap.init_app(app)
     app.jinja_env.trim_blocks = True

@@ -1,5 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ status|capitalize }}{% endblock %}
+{% block title %}
+{% if status == 'details' %}
+{{ data.new_filename }}
+{% else %}
+{{ status|capitalize }}
+{% endif %}
+{% endblock %}
 {% block content %}
 {% if data and status != 'error' %}
 <h4>
@@ -19,13 +25,15 @@ Response data
                     <td class="fw-bold">{{ key|replace('_', ' ')|title }}</td>
                     <td class="text-break">
                         {% if not value %}
-                        <span class="text-muted fst-italic">(empty)</span>
+                        <span class="text-muted fst-italic">(none)</span>
                         {% elif key == 'description' %}
                         <span style="white-space: pre-wrap;">{{ value|urlize }}</span>
+                        {% elif key in ['upload_date', 'expire_date'] %}
+                        {{ value | datetime }}
                         {% elif key == 'file_size' %}
-                        {{ value|filesizeformat }}
+                        {{ value | filesizeformat }}
                         {% else %}
-                        {{ value|urlize }}
+                        {{ value | urlize }}
                         {% endif %}
                     </td>
                 </tr>

@@ -2,6 +2,7 @@ import os
 from hashlib import md5
 from peewee import *
 from playhouse.shortcuts import model_to_dict
+from playhouse.flask_utils import PaginatedQuery
 from pfu.config import config
 
 database_path = os.path.join(config['DATA_DIR'], 'database.db')
@@ -98,3 +99,11 @@ def get_files_expiring_count():
 
 def get_files_size():
     return Files.select(fn.SUM(Files.size)).scalar() or 0
+
+
+def get_files_page(per_page, page):
+    page_query = PaginatedQuery(Files, per_page, page=page, check_bounds=True)
+    files = page_query.get_object_list()
+    current_page = page_query.get_page()
+    possible_pages = page_query.get_page_count()
+    return files, current_page, possible_pages
