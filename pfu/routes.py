@@ -2,7 +2,7 @@ import os
 import secrets
 from datetime import datetime
 from time import time
-from flask import Blueprint, current_app, render_template, request, jsonify, url_for
+from flask import Blueprint, current_app, render_template, request, jsonify, url_for, flash, redirect
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from pfu import db, utils
@@ -11,12 +11,17 @@ from pfu import db, utils
 main = Blueprint('main', __name__)
 
 
-def generate_response(json_requested, status, data):
+def generate_response(json_requested, status, data, redirect_url=None, include_flash=True):
     data = format_dates(data)
     if json_requested:
         return jsonify(status=status, data=data)
-    else:
+    if include_flash:
+        default_msg = 'Operation completed successfully.' if status == 'success' else 'An error occurred during the operation.'
+        flash(data.get('message', default_msg), status)
+    # If we have detailed data (new upload or file details), show the generic_response page
+    if status == 'success' and 'new_filename' in data:
         return render_template('generic_response.html', status=status, data=data)
+    return redirect(redirect_url or url_for('main.index'))
 
 
 def format_dates(data):
@@ -63,9 +68,9 @@ def upload_file():
     secret = request.form.get('secret')
     description = request.form.get('description')
     if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'unauthorised'}), 401
+        return generate_response(json_requested, 'error', {'message': 'Unauthorised'})
     if not file_up:
-        return generate_response(json_requested, 'error', {'message': 'no file selected'}), 400
+        return generate_response(json_requested, 'error', {'message': 'No file selected'})
     md5_sum = db.calc_md5(file_up)
     # Simple duplicate avoidance - if the file already exists, do not duplicate it and instead return details for it
     if existing_file := db.get_file_by_checksum(md5_sum):
@@ -75,12 +80,12 @@ def upload_file():
         expire_date = request.form.get('expire_date')
         expire_time = request.form.get('expire_time')
         if not expire_date or not expire_time:
-            return generate_response(json_requested, 'error', {'message': 'expiration enabled but date/time missing'}), 400
+            return generate_response(json_requested, 'error', {'message': 'Expiration enabled but date/time missing'})
         try:
             dt = datetime.strptime(f'{expire_date}{expire_time}', '%Y-%m-%d%H:%M')
             expire_timestamp = int(dt.timestamp())
         except ValueError:
-            return generate_response(json_requested, 'error', {'message': 'invalid expiration date/time'}), 400
+            return generate_response(json_requested, 'error', {'message': 'Invalid expiration date/time'})
     filename = secure_filename(file_up.filename)
     filename_root, filename_ext = os.path.splitext(filename)
     new_filename_root = secrets.token_urlsafe(current_app.config['FILENAME_LENGTH'])
@@ -93,7 +98,7 @@ def upload_file():
     try:
         file_up.save(file_path)
     except Exception as e:
-        return generate_response(json_requested, 'error', {'message': f'unable to save file: {e}'}), 500
+        return generate_response(json_requested, 'error', {'message': f'Unable to save file: {e}'})
     file_size = os.stat(file_path).st_size
     db.add_file_to_db(new_filename, file_up.filename, description, md5_sum, int(time()), expire_timestamp, file_size)
     file_data = db.get_file_by_filename(new_filename)
@@ -115,14 +120,14 @@ def delete_file(filename):
                                 button_class='btn-danger')
     secret = request.form.get('secret')
     if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'unauthorised'}), 401
+        return generate_response(json_requested, 'error', {'message': 'Unauthorised'}, redirect_url=request.url)
     if not db.get_file_by_filename(filename):
-        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
+        return generate_response(json_requested, 'error', {'message': f'File {filename} not found.'})
     try:
         db.delete_by_filename(filename)
     except Exception as e:
-        return generate_response(json_requested, 'error', {'message': f'unable to delete file: {e}'}), 500
-    return generate_response(json_requested, 'success', {'message': 'file deleted'})
+        return generate_response(json_requested, 'error', {'message': f'Unable to delete file: {e}'})
+    return generate_response(json_requested, 'success', {'message': 'File deleted successfully'})
 
 
 @main.route('/details/<filename>', methods=['GET', 'POST'])
@@ -137,8 +142,9 @@ def file_details(filename):
                                 action_url=url_for('main.file_details', filename=filename))
     secret = request.form.get('secret')
     if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'unauthorised'}), 401
+        return generate_response(json_requested, 'error', {'message': 'Unauthorised'}, redirect_url=request.url)
     file_data = db.get_file_by_filename(filename)
     if not file_data:
-        return generate_response(json_requested, 'error', {'message': 'no such file in db'}), 404
-    return generate_response(json_requested, 'details', prepare_file_details(file_data))
+        return generate_response(json_requested, 'error', {'message': f'File {filename} not found.'})
+    # No flash message for file details
+    return generate_response(json_requested, 'success', prepare_file_details(file_data), include_flash=False)
