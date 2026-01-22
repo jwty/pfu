@@ -9,7 +9,6 @@
             <th>Filename</th>
             <th>Original Filename</th>
             <th>Description</th>
-            <th>Checksum</th>
             <th>Upload Date</th>
             <th>Expire Date</th>
             <th>Size</th>
@@ -18,10 +17,9 @@
         <tbody>
         {% for file in files %}
         <tr>
-            <td>{{ file.new_filename }}</td>
-            <td>{{ file.original_filename }}</td>
-            <td>{{ file.description }}</td>
-            <td>{{ file.checksum }}</td>
+            <td>{{ file.new_filename | filename_truncate(20) }}</td>
+            <td>{{ file.original_filename | filename_truncate(20) }}</td>
+            <td>{% if file.description %}{{ file.description }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
             <td>{{ file.upload_date | datetime }}</td>
             <td>{% if file.expire_date %}{{ file.expire_date | datetime }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
             <td>{{ file.size | filesizeformat }}</td>
