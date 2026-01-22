@@ -25,11 +25,11 @@ markupsafe==3.0.3
     #   jinja2
     #   werkzeug
     #   wtforms
-peewee==3.18.3
+peewee==3.19.0
     # via pfu
 waitress==3.0.2
     # via pfu
-werkzeug==3.1.4
+werkzeug==3.1.5
     # via
     #   flask
     #   flask-login
