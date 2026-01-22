@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h4>Settings</h4>
+<h5>Statistics</h5>
+<div>Files currently in database: <strong>{{ files_count }}</strong></div>
+<div>Files currently set for expiration: <strong>{{ files_expiring_count }}</strong></div>
+<div>Combined size (as stored in database): <strong>{{ files_size | filesizeformat }}</strong></div>
+{% endblock %}

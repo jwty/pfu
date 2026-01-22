@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, url_for, redirect, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from pfu.auth import User
+from pfu.db import get_files_count, get_files_expiring_count, get_files_size
 
 
 auth = Blueprint('auth', __name__)
@@ -26,7 +27,10 @@ def login_post():
         return render_template('login.html')
     login_user(user, remember=remember_user)
     flash('Logged in successfully', 'success')
-    return redirect(url_for('main.index'))
+    next_page = request.args.get('next')
+    if not next_page or not next_page.startswith('/'):
+        next_page = url_for('main.index')
+    return redirect(next_page)
 
 
 @auth.route('/logout')
@@ -35,3 +39,13 @@ def logout():
     logout_user()
     flash('Logged out successfully', 'success')
     return redirect(url_for('main.index'))
+
+
+@auth.route('/settings')
+@login_required
+def settings():
+    # TODO: Cache these
+    files_count = get_files_count()
+    files_expiring_count = get_files_expiring_count()
+    files_size = get_files_size()
+    return render_template('settings.html', files_count=files_count, files_expiring_count=files_expiring_count, files_size=files_size)

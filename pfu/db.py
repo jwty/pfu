@@ -86,3 +86,15 @@ def calc_md5(file_up):
         file_buffer = file_up.read(chunk_size)
     file_up.seek(0)
     return md5_obj.hexdigest()
+
+
+def get_files_count():
+    return Files.select().count()
+
+
+def get_files_expiring_count():
+    return ExpiringFiles.select().count()
+
+
+def get_files_size():
+    return Files.select(fn.SUM(Files.size)).scalar() or 0
