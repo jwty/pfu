@@ -13,13 +13,12 @@ def format_datetime(timestamp):
     return dt.strftime('%Y-%m-%d %H:%M:%S %Z')
 
 
-def truncate_filename(filename, length=20):
+def truncate_filename(filename, length=20, from_start=False):
     if len(filename) <= length:
         return filename
-    end = '(...)'
-    filename_root, filename_ext = os.path.splitext(filename)
-    truncate_to = length - len(filename_ext) - len(end)
-    # If the extension is longer than length, or no space for root, truncate whole string (should be rare)
-    if truncate_to <= 0 or len(filename_ext) >= length:
-        return filename[:length-len(end)] + end
-    return filename_root[:truncate_to] + end + filename_ext
+    end = '...'
+    truncate_to = length - len(end)
+    if from_start:
+        return end + filename[-truncate_to:]
+    else:
+        return filename[:truncate_to] + end
