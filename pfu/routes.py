@@ -33,7 +33,7 @@ def prepare_file_details(file_data):
     file_details_dict = {
         'original_filename': file_data['original_filename'],
         'new_filename': new_filename,
-        'file_size': file_data['size'],
+        'size': file_data['size'],
         'description': file_data['description'],
         'file_url': file_url,
         'delete_url': delete_url,

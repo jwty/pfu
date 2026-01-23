@@ -17,8 +17,18 @@
         </thead>
         <tbody>
         {% for file in files %}
-        <tr>
-            <td>{{ file.new_filename | filename_truncate(20, from_start=true) }}</td>
+        <tr class="file-row" style="cursor: pointer;"
+            data-new-filename="{{ file.new_filename }}"
+            data-original-filename="{{ file.original_filename }}"
+            data-description="{% if file.description %}{{ '<span style="white-space: pre-wrap;"></tr>' }}{{ file.description | urlize | join}}{{'</span>'}}{% else %}{% endif %}"
+            data-upload-date="{{ file.upload_date | datetime }}"
+            data-expire-date="{{ file.expire_date | datetime or ''}}"
+            data-size="{{ file.size | filesizeformat }}"
+            data-checksum="{{ file.checksum }}"
+            data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}"
+            data-delete-url="{{ url_for('main.delete_file', filename=file.new_filename, _external=True) }}"
+            data-details-url="{{ url_for('main.file_details', filename=file.new_filename, _external=True) }}">
+            <td><a href="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}" target="_blank">{{ file.new_filename | filename_truncate(20, from_start=true) }}</a></td>
             <td>{{ file.original_filename | filename_truncate(30) }}</td>
             <td>{% if file.description %}{{ file.description | truncate(30) }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
             <td>{{ file.upload_date | datetime }}</td>
@@ -39,4 +49,44 @@
         <a class="btn btn-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', page=possible_pages, sort=request.args.get('sort', 'date')) }}"><i class="bi bi-chevron-bar-right"></i></a>
     </div>
 </div>
+<div id="details-table" class="mt-4 d-none">
+    <h4>File details for <strong id="details-filename"></strong></h4>
+    <div class="card shadow-sm">
+        <table class="table table-striped table-hover mb-0">
+            <thead class="table-light"><tr><th scope="col" style="width: 20%">Key</th><th scope="col">Value</th></tr></thead>
+            <tbody id="details-body"></tbody>
+        </table>
+    </div>
+</div>
+<!-- Script to populate the details table (WIP I guess) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('.file-row');
+    const detailsTable = document.getElementById('details-table');
+    const detailsFilename = document.getElementById('details-filename');
+    const detailsBody = document.getElementById('details-body');
+    rows.forEach(row => {
+        row.addEventListener('click', function() {
+            const data = this.dataset;
+            detailsFilename.textContent = data.newFilename;
+            const fields = [ { key: 'Original Filename', value: data.originalFilename },
+                             { key: 'New Filename', value: data.newFilename },
+                             { key: 'Size', value: data.size },
+                             { key: 'Description', value: data.description || '<span class="text-muted fst-italic">(none)</span>' },
+                             { key: 'File Url', value: `<a href="${data.fileUrl}" target="_blank">${data.fileUrl}</a>` },
+                             { key: 'Delete Url', value: `<a href="${data.deleteUrl}" target="_blank">${data.deleteUrl}</a>` },
+                             { key: 'Details Url', value: `<a href="${data.detailsUrl}" target="_blank">${data.detailsUrl}</a>` },
+                             { key: 'Checksum', value: data.checksum },
+                             { key: 'Upload Date', value: data.uploadDate },
+                             { key: 'Expire Date', value: data.expireDate || '<span class="text-muted fst-italic">(none)</span>' } ];
+            detailsBody.innerHTML = '';
+            fields.forEach(field => { const tr = document.createElement('tr');
+                                      tr.innerHTML = `<td class="fw-bold">${field.key}</td><td class="text-break">${field.value}</td>`;
+                                      detailsBody.appendChild(tr) });
+            detailsTable.classList.remove('d-none');
+            detailsTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        })
+    })
+})
+</script>
 {% endblock %}
