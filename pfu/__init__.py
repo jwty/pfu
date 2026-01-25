@@ -3,8 +3,9 @@ from flask_bootstrap import Bootstrap5
 from pfu.db import configure_db
 from pfu.utils import format_datetime
 from pfu.config import config_class
-from pfu.routes import main
+from pfu.routes_main import main
 from pfu.routes_auth import auth
+from pfu.routes_api import api
 from pfu.auth import login_manager
 
 
@@ -20,5 +21,6 @@ def create_app(config_class=config_class):
     app.jinja_env.lstrip_blocks = True
     app.register_blueprint(main)
     app.register_blueprint(auth)
+    app.register_blueprint(api)
     configure_db(app)
     return app

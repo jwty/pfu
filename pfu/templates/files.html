@@ -2,16 +2,17 @@
 {% block title %}Files (sorted by {{ sort_by | replace('_', ' ') }}){% endblock %}
 {% block content %}
 <h4>Files (sorted by {{ sort_by | replace('_', ' ') }})</h4>
-<!-- WIP -->
-<!-- <h5 class="text-muted">Search query: {{ request.args.get('q') }}</h5> -->
+{% if search_query %}
+<h5 class="text-muted">Search results for: <span class="text-primary">{{ search_query }}</span></h5>
+{% endif %}
 <!-- Sorting for mobile/narrow views-->
 <div class="d-md-none">
     <div class="dropdown">
     <button class="btn btn-outline-primary dropdown-toggle mb-2" type="button" data-bs-toggle="dropdown">Sorting</button>
     <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='date') }}">Upload Date</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='expire_date') }}">Expire Date</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='size') }}">Size</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='date', q=search_query) }}">Upload Date</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='expire_date', q=search_query) }}">Expire Date</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='size', q=search_query) }}">Size</a></li>
     </ul>
     </div>
 </div>
@@ -19,9 +20,9 @@
     <div class="row g-0 bg-light border-bottom fw-bold d-none d-md-flex align-items-center py-2 px-3">
         <div class="col-md-3">Filename</div>
         <div class="col-md-3">Description</div>
-        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='date') }}" class="text-decoration-none">Upload Date <i class="bi bi-sort-down"></i></a></div>
-        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='expire_date') }}" class="text-decoration-none">Expire Date <i class="bi bi-sort-down"></i></a></div>
-        <div class="col-md-1 text-end"><a href="{{ url_for('auth.files', sort='size') }}" class="text-decoration-none">Size <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='date', q=search_query) }}" class="text-decoration-none">Upload Date <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='expire_date', q=search_query) }}" class="text-decoration-none">Expire Date <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-1 text-end"><a href="{{ url_for('auth.files', sort='size', q=search_query) }}" class="text-decoration-none">Size <i class="bi bi-sort-down"></i></a></div>
         <div class="col-md-1 text-end">Actions</div>
     </div>
     <!-- Action buttons possibly too small to comfortably click on mobile devices -->
@@ -70,17 +71,17 @@
         <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">Files per page: {{ request.args.get('c', 10) }}</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=10, sort=request.args.get('sort')) }}">10</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=25, sort=request.args.get('sort')) }}">25</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=50, sort=request.args.get('sort')) }}">50</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=100, sort=request.args.get('sort')) }}">100</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=10, sort=request.args.get('sort'), q=search_query) }}">10</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=25, sort=request.args.get('sort'), q=search_query) }}">25</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=50, sort=request.args.get('sort'), q=search_query) }}">50</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=100, sort=request.args.get('sort'), q=search_query) }}">100</a></li>
             </ul>
         </div>
         <div class="btn-group">
-            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=1) }}"><i class="bi bi-chevron-bar-left"></i></a>
-            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page - 1) }}"><i class="bi bi-arrow-left"></i></a>
-            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page + 1) }}"><i class="bi bi-arrow-right"></i></a>
-            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=possible_pages) }}"><i class="bi bi-chevron-bar-right"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=1, q=search_query) }}"><i class="bi bi-chevron-bar-left"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page - 1, q=search_query) }}"><i class="bi bi-arrow-left"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page + 1, q=search_query) }}"><i class="bi bi-arrow-right"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=possible_pages, q=search_query) }}"><i class="bi bi-chevron-bar-right"></i></a>
         </div>
     </div>
 </div>

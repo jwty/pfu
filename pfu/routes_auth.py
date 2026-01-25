@@ -41,6 +41,7 @@ def logout():
     return redirect(url_for('main.index'))
 
 
+# TODO: These should be moved to main bp when it gets cleaned up
 @auth.route('/settings')
 @login_required
 def settings():
@@ -60,5 +61,22 @@ def files():
         page_number = 1
     sort_by = request.args.get('sort', 'date')
     files_per_page = request.args.get('c', 10, int)
-    files, current_page, possible_pages = get_files_page(files_per_page, page_number, sort_by)
-    return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages, sort_by=sort_by)
+    search_query = request.args.get('q')
+    files, current_page, possible_pages = get_files_page(files_per_page, page_number, sort_by, query=search_query)
+    return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages, sort_by=sort_by, search_query=search_query)
+
+
+@auth.get('/search')
+@login_required
+def search():
+    return render_template('search.html')
+
+
+@auth.post('/search')
+@login_required
+def search_post():
+    search_query = request.form.get('query-filename')
+    if not search_query:
+        flash('Please enter a search query', 'error')
+        return redirect(url_for('auth.search'))
+    return redirect(url_for('auth.files', q=search_query))

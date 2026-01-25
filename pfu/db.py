@@ -48,8 +48,13 @@ class ExpiringFiles(BaseModel):
 
 
 class Secrets(BaseModel):
-    secret_name = TextField()
-    secret_hash = TextField(index=True)
+    name = TextField()
+    description = TextField(null=True)
+    perm_read = BooleanField(default=False)
+    perm_write = BooleanField(default=False)
+    perm_delete = BooleanField(default=False)
+    hash = TextField(index=True)
+
 
 
 def add_file_to_db(new_filename, original_filename, description, checksum, upload_date, expire_date, size):
@@ -102,13 +107,16 @@ def get_files_size():
     return Files.select(fn.SUM(Files.size)).scalar() or 0
 
 
-def get_files_page(per_page, page, sort_by):
+def get_files_page(per_page, page, sort_by, query=None):
+    base_query = Files.select()
+    if query:
+        base_query = base_query.where(Files.new_filename.contains(query) | Files.original_filename.contains(query))
     if sort_by == 'size':
-        page_query = PaginatedQuery(Files.select().order_by(Files.size.desc()), per_page, page=page, check_bounds=True)
+        page_query = PaginatedQuery(base_query.order_by(Files.size.desc()), per_page, page=page, check_bounds=True)
     elif sort_by == 'expire_date':
-        page_query = PaginatedQuery(Files.select().order_by(Files.expire_date.desc()), per_page, page=page, check_bounds=True)
+        page_query = PaginatedQuery(base_query.order_by(Files.expire_date.desc()), per_page, page=page, check_bounds=True)
     else:
-        page_query = PaginatedQuery(Files.select().order_by(Files.upload_date.desc()), per_page, page=page, check_bounds=True)
+        page_query = PaginatedQuery(base_query.order_by(Files.upload_date.desc()), per_page, page=page, check_bounds=True)
     files = page_query.get_object_list()
     current_page = page_query.get_page()
     possible_pages = page_query.get_page_count()

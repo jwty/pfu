@@ -7,6 +7,7 @@ DEFAULTS = {
     'TEST_VAR': 'python defaults',
     'DATA_DIR': 'data',
     'UPLOAD_DIR': 'uploads',
+    # TODO: Should probably contain entire address to support serving from subdomain etc.
     'FILE_URL_PREFIX': 'f/',
     'CHUNK_SIZE': 4096,
     'FILENAME_LENGTH': 5,

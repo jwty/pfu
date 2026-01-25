@@ -25,6 +25,7 @@
                     {% if current_user.is_authenticated %}
                     {{ render_nav_item('auth.settings', 'Settings') }}
                     {{ render_nav_item('auth.files', 'Files') }}
+                    {{ render_nav_item('auth.search', 'Search') }}
                     {% endif %}
                 </div>
                 <div class="navbar-nav ms-auto">

@@ -119,23 +119,3 @@ def delete_file(filename):
     except Exception as e:
         return generate_response(json_requested, 'error', {'message': f'Unable to delete file: {e}'})
     return generate_response(json_requested, 'success', {'message': 'File deleted successfully'})
-
-
-@main.route('/details/<filename>', methods=['GET', 'POST'])
-def file_details(filename):
-    json_requested = 'json' in request.args
-    if request.method == 'GET':
-        file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
-        message = utils.Messages.DETAILS_PROMPT.format(file_url=file_url, filename=filename)
-        return render_template('prompt_secret.html',
-                                title='Secret required',
-                                message=message,
-                                action_url=url_for('main.file_details', filename=filename))
-    secret = request.form.get('secret')
-    if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'Unauthorised'}, redirect_url=request.url)
-    file_data = db.get_file_by_filename(filename)
-    if not file_data:
-        return generate_response(json_requested, 'error', {'message': f'File {filename} not found.'})
-    # No flash message for file details
-    return generate_response(json_requested, 'details', prepare_file_details(file_data), include_flash=False)
