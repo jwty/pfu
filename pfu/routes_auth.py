@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, url_for, redirect, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from pfu.auth import User
-from pfu.db import get_files_count, get_files_expiring_count, get_files_size, get_files_page
+from pfu.db import get_files_count, get_files_expiring_count, get_files_size, get_files_page, get_file_by_filename, delete_by_filename
 
 
 auth = Blueprint('auth', __name__)
@@ -80,3 +80,34 @@ def search_post():
         flash('Please enter a search query', 'error')
         return redirect(url_for('auth.search'))
     return redirect(url_for('auth.files', q=search_query))
+
+
+@auth.get('/delete/<filename_list>')
+@login_required
+def delete_files(filename_list):
+    filename_list = filename_list.split(',')
+    files = []
+    for filename in filename_list:
+        file = get_file_by_filename(filename)
+        if file:
+            files.append(file)
+    return render_template('delete.html', files=files)
+
+
+@auth.post('/delete/<filename_list>')
+@login_required
+def delete_files_post(filename_list):
+    filename_list = filename_list.split(',')
+    errors = []
+    for filename in filename_list:
+        try:
+            delete_by_filename(filename)
+        except Exception as e:
+            errors.append(f'Error for file {filename}: {e}')
+    if errors:
+        flash('Something went wrong while deleting files', 'warning')
+        for error in errors:
+            flash(error, 'error')
+    else:
+        flash('Files deleted successfully', 'success')
+    return redirect(url_for('auth.files'))

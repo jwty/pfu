@@ -29,8 +29,7 @@ class BaseModel(Model):
 
 
 class Files(BaseModel):
-    # TODO: "new" is redundant
-    new_filename = TextField(index=True)
+    filename = TextField(index=True)
     original_filename = TextField()
     description = TextField(null=True)
     checksum = TextField(unique=True)
@@ -57,14 +56,14 @@ class Secrets(BaseModel):
 
 
 
-def add_file_to_db(new_filename, original_filename, description, checksum, upload_date, expire_date, size):
+def add_file_to_db(filename, original_filename, description, checksum, upload_date, expire_date, size):
     file = Files.create(**locals())
     if expire_date:
         ExpiringFiles.create(file=file, expire_date=expire_date)
 
 
 def delete_by_filename(filename):
-    Files.delete().where(Files.new_filename == filename).execute()
+    Files.delete().where(Files.filename == filename).execute()
     os.remove(os.path.join(config['UPLOAD_DIR'], filename))
 
 
@@ -78,7 +77,7 @@ def get_file_by_checksum(checksum):
 
 def get_file_by_filename(filename):
     try:
-        file = Files.get(Files.new_filename == filename)
+        file = Files.get(Files.filename == filename)
     except DoesNotExist:
         return None
     return model_to_dict(file)
@@ -110,7 +109,7 @@ def get_files_size():
 def get_files_page(per_page, page, sort_by, query=None):
     base_query = Files.select()
     if query:
-        base_query = base_query.where(Files.new_filename.contains(query) | Files.original_filename.contains(query))
+        base_query = base_query.where(Files.filename.contains(query) | Files.original_filename.contains(query))
     if sort_by == 'size':
         page_query = PaginatedQuery(base_query.order_by(Files.size.desc()), per_page, page=page, check_bounds=True)
     elif sort_by == 'expire_date':

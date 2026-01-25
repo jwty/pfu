@@ -16,7 +16,7 @@ def format_datetime(timestamp):
 def prepare_file_details(current_app, request, file_data):
     base_url = request.url_root
     file_prefix = current_app.config['FILE_URL_PREFIX']
-    file_url = f'{base_url}{file_prefix}{file_data["new_filename"]}'
+    file_url = f'{base_url}{file_prefix}{file_data['filename']}'
     file_details_dict = {
         'original_filename': file_data['original_filename'],
         'size': file_data['size'],

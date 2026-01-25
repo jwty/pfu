@@ -28,18 +28,16 @@
     <!-- Action buttons possibly too small to comfortably click on mobile devices -->
     {% for file in files %}
     <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;"
-        data-filename="{{ file.new_filename }}"
+        data-filename="{{ file.filename }}"
         data-original-filename="{{ file.original_filename }}"
+        data-size="{{ file.size | filesizeformat }}"
+        data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}"
         data-description="{{ file.description | urlize | join or '' }}"
         data-upload-date="{{ file.upload_date | datetime }}"
         data-expire-date="{{ file.expire_date | datetime or ''}}"
-        data-size="{{ file.size | filesizeformat }}"
-        data-checksum="{{ file.checksum }}"
-        data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}"
-        data-delete-url="{{ url_for('main.delete_file', filename=file.new_filename, _external=True) }}"
-        data-details-url="{{ url_for('main.file_details', filename=file.new_filename, _external=True) }}">
+        data-checksum="{{ file.checksum }}">
         <div class="col-md-3 text-break pe-3">
-            <span class="fw-semibold"><a href="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}" target="_blank" class="text-decoration-none">{{ file.new_filename }}</a></span>
+            <span class="fw-semibold"><a href="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" target="_blank" class="text-decoration-none">{{ file.filename }}</a></span>
             <span class="d-block small text-muted">{{ file.original_filename }}</span>
         </div>
         <div class="col-md-3 text-truncate pe-3">
@@ -57,8 +55,8 @@
         <div class="col-md-1 text-md-end actions-col">
             <!-- TODO: make this work -->
             <a href="#" class="bi bi-pencil-square" target="_blank"></a>
-            <a href="#" class="bi bi-trash" target="_blank"></a>
-            <input class="form-check-input" type="checkbox">
+            <a href="{{ url_for('auth.delete_files', filename_list=file.filename) }}" class="bi bi-trash" target="_blank"></a>
+            <input class="form-check-input" type="checkbox" name="mark_for_deletion" value="{{ file.filename }}">
         </div>
     </div>
     {% endfor %}
@@ -66,8 +64,7 @@
 <div class="d-md-flex justify-content-between align-items-center mb-4">
     <div class="text-muted small">Currently on page {{ current_page }} of {{ possible_pages }}</div>
     <div class="d-md-flex gap-2">
-        <!-- TODO: make this work -->
-        <a class="btn btn-danger disabled" href="#">Delete selected</a>
+        <a id="delete-selected-btn" class="btn btn-danger disabled" href="#" data-base-url="{{ url_for('auth.delete_files', filename_list='') }}">Delete selected</a>
         <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">Files per page: {{ request.args.get('c', 10) }}</button>
             <ul class="dropdown-menu">
@@ -101,6 +98,7 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // File details
     const rows = document.querySelectorAll('.file-row');
     const detailsTable = document.getElementById('details-table');
     const detailsFilename = document.getElementById('details-filename');
@@ -130,6 +128,20 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('bg-info-subtle');
         })
     })
+    // Mass delete
+    const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+    const deleteCheckboxes = document.querySelectorAll('input[name="mark_for_deletion"]');
+    const baseDeleteUrl = deleteSelectedBtn.dataset.baseUrl;
+    function updateDeleteButton() {
+        const selectedFiles = Array.from(deleteCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+        if (selectedFiles.length > 0) {
+            deleteSelectedBtn.classList.remove('disabled');
+            deleteSelectedBtn.href = baseDeleteUrl + selectedFiles.join(',');
+        } else {
+            deleteSelectedBtn.classList.add('disabled');
+            deleteSelectedBtn.href = '#';
+        }}
+    deleteCheckboxes.forEach(cb => cb.addEventListener('change', updateDeleteButton))
 })
 </script>
 {% endblock %}

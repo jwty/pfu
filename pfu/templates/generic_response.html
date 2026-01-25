@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}
 {% if status == 'details' %}
-{{ data.new_filename }}
+{{ data.filename }}
 {% else %}
 {{ status|capitalize }}
 {% endif %}
@@ -10,7 +10,7 @@
 {% if data and status != 'error' %}
 <h4>
 {% if status == 'details' %}
-File details for <strong>{{ data.new_filename }}</strong>
+File details for <strong>{{ data.filename }}</strong>
 {% else %}
 Response data
 {% endif %}

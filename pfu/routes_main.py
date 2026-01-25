@@ -5,7 +5,7 @@ from time import time
 from flask import Blueprint, current_app, render_template, request, jsonify, url_for, flash, redirect
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
-from pfu import db, utils
+from pfu import db
 
 
 main = Blueprint('main', __name__)
@@ -18,7 +18,7 @@ def generate_response(json_requested, status, data, redirect_url=None, include_f
         default_msg = 'Operation completed successfully.' if status == 'success' else 'An error occurred during the operation.'
         flash(data.get('message', default_msg), status)
     # If we have detailed data (new upload or file details), show the generic_response page
-    if (status == 'success' and 'new_filename' in data) or status == 'details':
+    if (status == 'success' and 'filename' in data) or status == 'details':
         return render_template('generic_response.html', status=status, data=data)
     return redirect(redirect_url or url_for('main.index'))
 
@@ -26,13 +26,13 @@ def generate_response(json_requested, status, data, redirect_url=None, include_f
 def prepare_file_details(file_data):
     base_url = request.url_root
     file_prefix = current_app.config['FILE_URL_PREFIX']
-    new_filename = file_data['new_filename']
-    file_url = f'{base_url}{file_prefix}{new_filename}'
-    delete_url = f'{base_url}delete/{new_filename}'
-    details_url = f'{base_url}details/{new_filename}'
+    filename = file_data['filename']
+    file_url = f'{base_url}{file_prefix}{filename}'
+    delete_url = f'{base_url}delete/{filename}'
+    details_url = f'{base_url}details/{filename}'
     file_details_dict = {
         'original_filename': file_data['original_filename'],
-        'new_filename': new_filename,
+        'filename': filename,
         'size': file_data['size'],
         'description': file_data['description'],
         'file_url': file_url,
@@ -82,40 +82,15 @@ def upload_file():
     new_filename_root = secrets.token_urlsafe(current_app.config['FILENAME_LENGTH'])
     if 'keep' in request.form:
         # Amend original filename to random token to avoid conflicts when uploading different files with same filenames
-        new_filename = f'{filename_root}-{new_filename_root}{filename_ext}'
+        filename = f'{filename_root}-{new_filename_root}{filename_ext}'
     else:
-        new_filename = f'{new_filename_root}{filename_ext}'
-    file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
+        filename = f'{new_filename_root}{filename_ext}'
+    file_path = os.path.join(current_app.config['UPLOAD_DIR'], filename)
     try:
         file_up.save(file_path)
     except Exception as e:
         return generate_response(json_requested, 'error', {'message': f'Unable to save file: {e}'})
     file_size = os.stat(file_path).st_size
-    db.add_file_to_db(new_filename, file_up.filename, description, md5_sum, int(time()), expire_timestamp, file_size)
-    file_data = db.get_file_by_filename(new_filename)
+    db.add_file_to_db(filename, file_up.filename, description, md5_sum, int(time()), expire_timestamp, file_size)
+    file_data = db.get_file_by_filename(filename)
     return generate_response(json_requested, 'success', prepare_file_details(file_data))
-
-
-@main.route('/delete/<filename>', methods=['GET', 'POST'])
-def delete_file(filename):
-    json_requested = 'json' in request.args
-    if request.method == 'GET':
-        file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{filename}'
-        details_url = url_for('main.file_details', filename=filename)
-        message = utils.Messages.DELETE_CONFIRM.format(file_url=file_url, filename=filename, details_url=details_url)
-        return render_template('prompt_secret.html',
-                                title=f'Delete {filename}',
-                                message=message,
-                                action_url=url_for('main.delete_file', filename=filename),
-                                button_text='Delete',
-                                button_class='btn-danger')
-    secret = request.form.get('secret')
-    if not secret or not check_password_hash(current_app.config['AUTH_SECRET'], secret):
-        return generate_response(json_requested, 'error', {'message': 'Unauthorised'}, redirect_url=request.url)
-    if not db.get_file_by_filename(filename):
-        return generate_response(json_requested, 'error', {'message': f'File {filename} not found.'})
-    try:
-        db.delete_by_filename(filename)
-    except Exception as e:
-        return generate_response(json_requested, 'error', {'message': f'Unable to delete file: {e}'})
-    return generate_response(json_requested, 'success', {'message': 'File deleted successfully'})
