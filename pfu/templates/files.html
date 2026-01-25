@@ -1,64 +1,103 @@
 {% extends "base.html" %}
-{% block title %}Files (sorted by {{ sort_by }}){% endblock %}
+{% block title %}Files (sorted by {{ sort_by | replace('_', ' ') }}){% endblock %}
 {% block content %}
-<h4>Files (sorted by {{ sort_by }})</h4>
-<div class="table-responsive mb-3">
-    <table class="table table-striped table-hover table-sm">
-        <thead>
-        <tr>
-            <th style="width: 15%">Filename</th>
-            <th style="width: 20%">Original Filename</th>
-            <th style="width: 20%">Description</th>
-            <th style="width: 17%"><a href="{{ url_for('auth.files', sort='date') }}">Upload Date</a></th>
-            <th style="width: 17%">Expire Date</th>
-            <th style="width: 10%"><a href="{{ url_for('auth.files', sort='size') }}">Size</a></th>
-            <!-- <th style="width: 1%"><i class="bi bi-trash"></i></th> -->
-        </tr>
-        </thead>
-        <tbody>
-        {% for file in files %}
-        <tr class="file-row" style="cursor: pointer;"
-            data-new-filename="{{ file.new_filename }}"
-            data-original-filename="{{ file.original_filename }}"
-            data-description="{% if file.description %}{{ '<span style="white-space: pre-wrap;"></tr>' }}{{ file.description | urlize | join}}{{'</span>'}}{% else %}{% endif %}"
-            data-upload-date="{{ file.upload_date | datetime }}"
-            data-expire-date="{{ file.expire_date | datetime or ''}}"
-            data-size="{{ file.size | filesizeformat }}"
-            data-checksum="{{ file.checksum }}"
-            data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}"
-            data-delete-url="{{ url_for('main.delete_file', filename=file.new_filename, _external=True) }}"
-            data-details-url="{{ url_for('main.file_details', filename=file.new_filename, _external=True) }}">
-            <td><a href="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}" target="_blank">{{ file.new_filename | filename_truncate(20, from_start=true) }}</a></td>
-            <td>{{ file.original_filename | filename_truncate(30) }}</td>
-            <td>{% if file.description %}{{ file.description | truncate(30) }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
-            <td>{{ file.upload_date | datetime }}</td>
-            <td>{% if file.expire_date %}{{ file.expire_date | datetime }}{% else %}<span class="text-muted fst-italic">(none)</span>{% endif %}</td>
-            <td>{{ file.size | filesizeformat }}</td>
-            <!-- <td><input class="form-check-input" type="checkbox" name="expire"></td> -->
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-<div class="d-flex justify-content-between">
-    <div class="me-auto">Currently on page {{ current_page }} of {{ possible_pages }}</div>
-    <div class="ms-auto">
-        <a class="btn btn-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', page=1, sort=request.args.get('sort', 'date')) }}"><i class="bi bi-chevron-bar-left"></i></a>
-        <a class="btn btn-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', page=current_page - 1, sort=request.args.get('sort', 'date')) }}"><i class="bi bi-arrow-left"></i></a>
-        <a class="btn btn-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', page=current_page + 1, sort=request.args.get('sort', 'date')) }}"><i class="bi bi-arrow-right"></i></a>
-        <a class="btn btn-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', page=possible_pages, sort=request.args.get('sort', 'date')) }}"><i class="bi bi-chevron-bar-right"></i></a>
+<h4>Files (sorted by {{ sort_by | replace('_', ' ') }})</h4>
+<!-- WIP -->
+<!-- <h5 class="text-muted">Search query: {{ request.args.get('q') }}</h5> -->
+<!-- Sorting for mobile/narrow views-->
+<div class="d-md-none">
+    <div class="dropdown">
+    <button class="btn btn-outline-primary dropdown-toggle mb-2" type="button" data-bs-toggle="dropdown">Sorting</button>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='date') }}">Upload Date</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='expire_date') }}">Expire Date</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='size') }}">Size</a></li>
+    </ul>
     </div>
 </div>
-<div id="details-table" class="mt-4 d-none">
-    <h4>File details for <strong id="details-filename"></strong></h4>
-    <div class="card shadow-sm">
-        <table class="table table-striped table-hover mb-0">
-            <thead class="table-light"><tr><th scope="col" style="width: 20%">Key</th><th scope="col">Value</th></tr></thead>
-            <tbody id="details-body"></tbody>
+<div class="container-fluid border px-0 mb-3">
+    <div class="row g-0 bg-light border-bottom fw-bold d-none d-md-flex align-items-center py-2 px-3">
+        <div class="col-md-3">Filename</div>
+        <div class="col-md-3">Description</div>
+        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='date') }}" class="text-decoration-none">Upload Date <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='expire_date') }}" class="text-decoration-none">Expire Date <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-1 text-end"><a href="{{ url_for('auth.files', sort='size') }}" class="text-decoration-none">Size <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-1 text-end">Actions</div>
+    </div>
+    <!-- Action buttons possibly too small to comfortably click on mobile devices -->
+    {% for file in files %}
+    <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;"
+        data-filename="{{ file.new_filename }}"
+        data-original-filename="{{ file.original_filename }}"
+        data-description="{{ file.description | urlize | join or '' }}"
+        data-upload-date="{{ file.upload_date | datetime }}"
+        data-expire-date="{{ file.expire_date | datetime or ''}}"
+        data-size="{{ file.size | filesizeformat }}"
+        data-checksum="{{ file.checksum }}"
+        data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}"
+        data-delete-url="{{ url_for('main.delete_file', filename=file.new_filename, _external=True) }}"
+        data-details-url="{{ url_for('main.file_details', filename=file.new_filename, _external=True) }}">
+        <div class="col-md-3 text-break pe-3">
+            <span class="fw-semibold"><a href="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.new_filename }}" target="_blank" class="text-decoration-none">{{ file.new_filename }}</a></span>
+            <span class="d-block small text-muted">{{ file.original_filename }}</span>
+        </div>
+        <div class="col-md-3 text-truncate pe-3">
+            {% if file.description %}{{ file.description }}{% else %}<span class="text-muted fst-italic small">(no description)</span>{% endif %}
+        </div>
+        <div class="col-md-2 small">
+            {{ file.upload_date | datetime }}
+        </div>
+        <div class="col-md-2 small">
+            {% if file.expire_date %}{{ file.expire_date | datetime }}{% else %}<span class="text-muted fst-italic">(no exp. date)</span>{% endif %}
+        </div>
+        <div class="col-md-1 text-md-end small">
+            {{ file.size | filesizeformat }}
+        </div>
+        <div class="col-md-1 text-md-end actions-col">
+            <!-- TODO: make this work -->
+            <a href="#" class="bi bi-pencil-square" target="_blank"></a>
+            <a href="#" class="bi bi-trash" target="_blank"></a>
+            <input class="form-check-input" type="checkbox">
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<div class="d-md-flex justify-content-between align-items-center mb-4">
+    <div class="text-muted small">Currently on page {{ current_page }} of {{ possible_pages }}</div>
+    <div class="d-md-flex gap-2">
+        <!-- TODO: make this work -->
+        <a class="btn btn-danger disabled" href="#">Delete selected</a>
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">Files per page: {{ request.args.get('c', 10) }}</button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=10, sort=request.args.get('sort')) }}">10</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=25, sort=request.args.get('sort')) }}">25</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=50, sort=request.args.get('sort')) }}">50</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=100, sort=request.args.get('sort')) }}">100</a></li>
+            </ul>
+        </div>
+        <div class="btn-group">
+            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=1) }}"><i class="bi bi-chevron-bar-left"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page - 1) }}"><i class="bi bi-arrow-left"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page + 1) }}"><i class="bi bi-arrow-right"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=possible_pages) }}"><i class="bi bi-chevron-bar-right"></i></a>
+        </div>
+    </div>
+</div>
+<div id="details-table" class="d-none mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">File details for <strong id="details-filename"></strong></h4>
+        <button type="button" class="btn-close" onclick="document.getElementById('details-table').classList.add('d-none')"></button>
+    </div>
+    <div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead class="table-light"><tr><th scope="col" style="width: 25%">Key</th><th scope="col">Value</th></tr></thead>
+            <tbody id="details-body" class="align-middle"></tbody>
         </table>
     </div>
+    </div>
 </div>
-<!-- Script to populate the details table (WIP I guess) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const rows = document.querySelectorAll('.file-row');
@@ -66,25 +105,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const detailsFilename = document.getElementById('details-filename');
     const detailsBody = document.getElementById('details-body');
     rows.forEach(row => {
-        row.addEventListener('click', function() {
+        row.addEventListener('click', function(e) {
+            // Don't trigger details for clicks on links or actions column
+            if (e.target.closest('a') || e.target.closest('.actions-col')) return;
             const data = this.dataset;
-            detailsFilename.textContent = data.newFilename;
-            const fields = [ { key: 'Original Filename', value: data.originalFilename },
-                             { key: 'New Filename', value: data.newFilename },
+            detailsFilename.textContent = data.filename;
+            const fields = [ { key: 'Filename', value: data.filename },
+                             { key: 'Original filename', value: data.originalFilename },
                              { key: 'Size', value: data.size },
-                             { key: 'Description', value: data.description || '<span class="text-muted fst-italic">(none)</span>' },
-                             { key: 'File Url', value: `<a href="${data.fileUrl}" target="_blank">${data.fileUrl}</a>` },
-                             { key: 'Delete Url', value: `<a href="${data.deleteUrl}" target="_blank">${data.deleteUrl}</a>` },
-                             { key: 'Details Url', value: `<a href="${data.detailsUrl}" target="_blank">${data.detailsUrl}</a>` },
-                             { key: 'Checksum', value: data.checksum },
+                             { key: 'File URL', value: `<a href="${data.fileUrl}" target="_blank">${data.fileUrl}</a>` },
+                             { key: 'Description', value: data.description ? `<span style="white-space: pre-wrap;">${data.description}</span>` : '<span class="text-muted fst-italic small">(no description)</span>' },
                              { key: 'Upload Date', value: data.uploadDate },
-                             { key: 'Expire Date', value: data.expireDate || '<span class="text-muted fst-italic">(none)</span>' } ];
+                             { key: 'Expire Date', value: data.expireDate || '<span class="text-muted fst-italic">(no exp. date)</span>' },
+                             { key: 'Checksum', value: `<code class="small">${data.checksum}</code>` }];
             detailsBody.innerHTML = '';
             fields.forEach(field => { const tr = document.createElement('tr');
-                                      tr.innerHTML = `<td class="fw-bold">${field.key}</td><td class="text-break">${field.value}</td>`;
+                                      tr.innerHTML = `<td class="fw-bold text-muted">${field.key}</td><td class="text-break">${field.value}</td>`;
                                       detailsBody.appendChild(tr) });
             detailsTable.classList.remove('d-none');
             detailsTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Highlight selected row
+            rows.forEach(r => r.classList.remove('bg-info-subtle'));
+            this.classList.add('bg-info-subtle');
         })
     })
 })

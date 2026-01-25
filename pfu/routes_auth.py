@@ -54,14 +54,11 @@ def settings():
 @auth.route('/files')
 @login_required
 def files():
-    try:
-        page_number = int(request.args.get('page', 1))
-    except ValueError:
-        flash('Invalid page number', 'error')
-        page_number = 1
+    page_number = int(request.args.get('page', 1, int))
     if page_number < 1:
         flash('Invalid page number', 'error')
         page_number = 1
     sort_by = request.args.get('sort', 'date')
-    files, current_page, possible_pages = get_files_page(10, page_number, sort_by)
+    files_per_page = request.args.get('c', 10, int)
+    files, current_page, possible_pages = get_files_page(files_per_page, page_number, sort_by)
     return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages, sort_by=sort_by)

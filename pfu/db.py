@@ -29,6 +29,7 @@ class BaseModel(Model):
 
 
 class Files(BaseModel):
+    # TODO: "new" is redundant
     new_filename = TextField(index=True)
     original_filename = TextField()
     description = TextField(null=True)
@@ -104,6 +105,8 @@ def get_files_size():
 def get_files_page(per_page, page, sort_by):
     if sort_by == 'size':
         page_query = PaginatedQuery(Files.select().order_by(Files.size.desc()), per_page, page=page, check_bounds=True)
+    elif sort_by == 'expire_date':
+        page_query = PaginatedQuery(Files.select().order_by(Files.expire_date.desc()), per_page, page=page, check_bounds=True)
     else:
         page_query = PaginatedQuery(Files.select().order_by(Files.upload_date.desc()), per_page, page=page, check_bounds=True)
     files = page_query.get_object_list()
