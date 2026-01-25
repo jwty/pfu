@@ -10,12 +10,13 @@ error_401 = {'status': 'error', 'message': 'Unauthorized'}
 error_405 = {'status': 'error', 'message': 'Method not allowed'}
 
 
-@api.app_errorhandler(404)
+# TODO: These are a mess; serve different error when prefix is /api
+@api.errorhandler(404)
 def not_found(error):
     return error_404, 404
 
 
-@api.app_errorhandler(405)
+@api.errorhandler(405)
 def method_not_allowed(error):
     return error_405, 405
 
@@ -39,6 +40,8 @@ def details(filename):
 
 @api.delete('/file/<filename>')
 def delete(filename):
+    if not get_file_by_filename(filename):
+        return error_404, 404
     try:
         delete_by_filename(filename)
     except Exception as e:

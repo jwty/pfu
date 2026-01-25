@@ -55,7 +55,7 @@
         <div class="col-md-1 text-md-end actions-col">
             <!-- TODO: make this work -->
             <a href="#" class="bi bi-pencil-square" target="_blank"></a>
-            <a href="{{ url_for('auth.delete_files', filename_list=file.filename) }}" class="bi bi-trash" target="_blank"></a>
+            <a href="{{ url_for('auth.delete_files', filename_list=file.filename, next=request.url) }}" class="bi bi-trash"></a>
             <input class="form-check-input" type="checkbox" name="mark_for_deletion" value="{{ file.filename }}">
         </div>
     </div>
@@ -64,7 +64,7 @@
 <div class="d-md-flex justify-content-between align-items-center mb-4">
     <div class="text-muted small">Currently on page {{ current_page }} of {{ possible_pages }}</div>
     <div class="d-md-flex gap-2">
-        <a id="delete-selected-btn" class="btn btn-danger disabled" href="#" data-base-url="{{ url_for('auth.delete_files', filename_list='') }}">Delete selected</a>
+        <a id="delete-selected-btn" class="btn btn-danger disabled" href="#" data-base-url="{{ url_for('auth.delete_files', filename_list='') }}" data-current-files-view="{{ request.url }}">Delete selected</a>
         <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">Files per page: {{ request.args.get('c', 10) }}</button>
             <ul class="dropdown-menu">
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedFiles = Array.from(deleteCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
         if (selectedFiles.length > 0) {
             deleteSelectedBtn.classList.remove('disabled');
-            deleteSelectedBtn.href = baseDeleteUrl + selectedFiles.join(',');
+            deleteSelectedBtn.href = baseDeleteUrl + selectedFiles.join(',') + '?next=' + encodeURIComponent(deleteSelectedBtn.dataset.currentFilesView);
         } else {
             deleteSelectedBtn.classList.add('disabled');
             deleteSelectedBtn.href = '#';

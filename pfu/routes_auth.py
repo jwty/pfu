@@ -8,7 +8,7 @@ from pfu.db import get_files_count, get_files_expiring_count, get_files_size, ge
 auth = Blueprint('auth', __name__)
 
 
-@auth.route('/login')
+@auth.get('/login')
 def login():
     if current_user.is_authenticated:
         flash('Already logged in', 'info')
@@ -16,7 +16,7 @@ def login():
     return render_template('login.html')
 
 
-@auth.route('/login', methods=['POST'])
+@auth.post('/login')
 def login_post():
     username = request.form.get('username')
     password = request.form.get('password')
@@ -33,7 +33,7 @@ def login_post():
     return redirect(next_page)
 
 
-@auth.route('/logout')
+@auth.get('/logout')
 @login_required
 def logout():
     logout_user()
@@ -42,7 +42,7 @@ def logout():
 
 
 # TODO: These should be moved to main bp when it gets cleaned up
-@auth.route('/settings')
+@auth.get('/settings')
 @login_required
 def settings():
     # TODO: Cache these
@@ -52,17 +52,19 @@ def settings():
     return render_template('settings.html', files_count=files_count, files_expiring_count=files_expiring_count, files_size=files_size)
 
 
-@auth.route('/files')
+@auth.get('/files')
 @login_required
 def files():
     page_number = int(request.args.get('page', 1, int))
     if page_number < 1:
-        flash('Invalid page number', 'error')
         page_number = 1
     sort_by = request.args.get('sort', 'date')
     files_per_page = request.args.get('c', 10, int)
     search_query = request.args.get('q')
     files, current_page, possible_pages = get_files_page(files_per_page, page_number, sort_by, query=search_query)
+    # Re-fetch if page number is out of bounds (for example, on file deletion)
+    if page_number > possible_pages and possible_pages > 0:
+        files, current_page, possible_pages = get_files_page(files_per_page, possible_pages, sort_by, query=search_query)
     return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages, sort_by=sort_by, search_query=search_query)
 
 
@@ -91,7 +93,8 @@ def delete_files(filename_list):
         file = get_file_by_filename(filename)
         if file:
             files.append(file)
-    return render_template('delete.html', files=files)
+    next_view = request.args.get('next')
+    return render_template('delete.html', files=files, next_view=next_view)
 
 
 @auth.post('/delete/<filename_list>')
@@ -110,4 +113,5 @@ def delete_files_post(filename_list):
             flash(error, 'error')
     else:
         flash('Files deleted successfully', 'success')
-    return redirect(url_for('auth.files'))
+    next_view = request.args.get('next')
+    return redirect(next_view or url_for('auth.files'))

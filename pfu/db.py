@@ -111,11 +111,11 @@ def get_files_page(per_page, page, sort_by, query=None):
     if query:
         base_query = base_query.where(Files.filename.contains(query) | Files.original_filename.contains(query))
     if sort_by == 'size':
-        page_query = PaginatedQuery(base_query.order_by(Files.size.desc()), per_page, page=page, check_bounds=True)
+        page_query = PaginatedQuery(base_query.order_by(Files.size.desc()), per_page, page=page, check_bounds=False)
     elif sort_by == 'expire_date':
-        page_query = PaginatedQuery(base_query.order_by(Files.expire_date.desc()), per_page, page=page, check_bounds=True)
+        page_query = PaginatedQuery(base_query.order_by(Files.expire_date.desc()), per_page, page=page, check_bounds=False)
     else:
-        page_query = PaginatedQuery(base_query.order_by(Files.upload_date.desc()), per_page, page=page, check_bounds=True)
+        page_query = PaginatedQuery(base_query.order_by(Files.upload_date.desc()), per_page, page=page, check_bounds=False)
     files = page_query.get_object_list()
     current_page = page_query.get_page()
     possible_pages = page_query.get_page_count()
