@@ -2,5 +2,74 @@
 {% block title %}Settings{% endblock %}
 {% block content %}
 <h4>Settings</h4>
-<p>(there's nothing here yet)</p>
+<h5>API keys</h5>
+<div class="container-fluid border border-bottom-0 px-0 mb-3">
+    <div class="row g-0 bg-light border-bottom fw-bold d-none d-md-flex align-items-center py-2 px-3">
+        <div class="col-md-3">Name</div>
+        <div class="col-md-3">Permissions</div>
+        <div class="col-md-auto">Description</div>
+    </div>
+    {% for secret in secrets %}
+    <div class="row g-0 border-bottom align-items-center py-2 px-3">
+        <div class="col-md-3">
+            <span class="fw-semibold">{{ secret.name }}</span>
+            <a href="{{ url_for('main.delete_secret_get', secret_id=secret.id) }}" class="text-danger"><i class="bi bi-trash small"></i></a>
+        </div>
+        <div class="col-md-3">
+            {% if secret.perm_read %}<span class="badge bg-success me-2">Read</span>{% endif %}
+            {% if secret.perm_write %}<span class="badge bg-warning text-dark me-2">Write</span>{% endif %}
+            {% if secret.perm_delete %}<span class="badge bg-danger me-2">Delete</span>{% endif %}
+        </div>
+        <div class="col-md-auto">
+            {{ secret.description or '<span class="text-muted fst-italic small">(no description)</span>' | safe }}
+        </div>
+    </div>
+    {% else %}
+    <div class="p-3 text-center text-muted">
+        No API keys found
+    </div>
+    {% endfor %}
+</div>
+<h5>Create new API key</h5>
+<form action="{{ url_for('main.create_secret') }}" method="post">
+    <div class="row row-gap-3 align-items-end">
+        <div class="col-md-2">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="col-md-4">
+            <label for="description" class="form-label">Description</label>
+            <input type="text" class="form-control" id="description" name="description">
+        </div>
+        <div class="col-md-2">
+            <div class="btn-group" role="group">
+                <input type="checkbox" class="btn-check perm-check" id="perm_read" name="perm_read" autocomplete="off" required>
+                <label class="btn btn-outline-primary" for="perm_read">Read</label>
+                <input type="checkbox" class="btn-check perm-check" id="perm_write" name="perm_write" autocomplete="off">
+                <label class="btn btn-outline-primary" for="perm_write">Write</label>
+                <input type="checkbox" class="btn-check perm-check" id="perm_delete" name="perm_delete" autocomplete="off">
+                <label class="btn btn-outline-primary" for="perm_delete">Delete</label>
+            </div>
+        </div>
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+// Script to make sure that at least one permission is selected
+document.addEventListener('DOMContentLoaded', function() {
+    const checks = document.querySelectorAll('.perm-check');
+    const readCheck = document.getElementById('perm_read');
+    function updateRequired() {
+        const anyChecked = Array.from(checks).some(c => c.checked);
+        readCheck.required = !anyChecked;
+    }
+    checks.forEach(check => {
+        check.addEventListener('change', updateRequired);
+    });
+});
+</script>
 {% endblock %}

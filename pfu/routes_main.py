@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from markupsafe import Markup
-from pfu.db import delete_by_filename, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_page, get_files_size, update_file
+from pfu.db import delete_by_filename, delete_secret, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_page, get_files_size, get_secrets, new_secret, update_file
 from pfu.utils import save_file
 
 
@@ -57,7 +57,32 @@ def home():
 @main.get('/settings')
 @login_required
 def settings():
-    return render_template('settings.html')
+    secrets = get_secrets()
+    return render_template('settings.html', secrets=secrets)
+
+
+@main.post('/create_secret')
+@login_required
+def create_secret():
+    name = request.form.get('name')
+    description = request.form.get('description')
+    perm_read = 'perm_read' in request.form
+    perm_write = 'perm_write' in request.form
+    perm_delete = 'perm_delete' in request.form
+    status, response = new_secret(name, description, perm_read, perm_write, perm_delete)
+    if status == 'success':
+        flash(Markup(f'Secret created successfully: <code>{response}</code>'), 'success')
+    else:
+        flash(f'Something went wrong: {response}', 'error')
+    return redirect(url_for('main.settings'))
+
+
+@main.get('/delete_secret/<secret_id>')
+@login_required
+def delete_secret_get(secret_id):
+    status, response = delete_secret(secret_id)
+    flash(response, status)
+    return redirect(url_for('main.settings'))
 
 
 @main.get('/files')

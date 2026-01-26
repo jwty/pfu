@@ -3,6 +3,8 @@ from hashlib import md5
 from peewee import *
 from playhouse.flask_utils import PaginatedQuery
 from playhouse.shortcuts import model_to_dict
+from secrets import token_hex
+from werkzeug.security import generate_password_hash
 from pfu.config import config
 
 database_path = os.path.join(config['DATA_DIR'], 'database.db')
@@ -47,12 +49,13 @@ class ExpiringFiles(BaseModel):
 
 
 class Secrets(BaseModel):
-    name = TextField()
+    name = TextField(unique=True)
     description = TextField(null=True)
     perm_read = BooleanField(default=False)
     perm_write = BooleanField(default=False)
     perm_delete = BooleanField(default=False)
-    hash = TextField(index=True)
+    prefix = TextField(index=True)
+    hash = TextField()
 
 
 
@@ -127,3 +130,36 @@ def get_files_page(per_page, page, sort_by, query=None):
     current_page = page_query.get_page()
     possible_pages = page_query.get_page_count()
     return files, current_page, possible_pages
+
+
+def get_secrets():
+    return [model_to_dict(secret) for secret in Secrets.select()]
+
+
+def get_secret(prefix):
+    try:
+        secret = Secrets.get(Secrets.prefix == prefix)
+    except DoesNotExist:
+        return None
+    return model_to_dict(secret)
+
+
+def new_secret(name, description, perm_read, perm_write, perm_delete):
+    secret_prefix = token_hex(4)
+    secret_token = token_hex(16)
+    secret_key = f'{secret_prefix}-{secret_token}'
+    hash = generate_password_hash(secret_token)
+    try:
+        Secrets.create(name=name, description=description, perm_read=perm_read, perm_write=perm_write, perm_delete=perm_delete, prefix=secret_prefix, hash=hash)
+    except IntegrityError:
+        return 'error', f'Secret "{name}" already exists'
+    return 'success', secret_key
+
+
+def delete_secret(secret_id):
+    try:
+        secret = Secrets.get(Secrets.id == secret_id)
+        secret.delete_instance()
+    except DoesNotExist:
+        return 'error', 'Secret not found'
+    return 'success', 'Secret deleted successfully'

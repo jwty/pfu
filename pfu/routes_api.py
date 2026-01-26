@@ -1,21 +1,36 @@
 from flask import Blueprint, current_app, request
+from functools import wraps
 from werkzeug.security import check_password_hash
-from pfu.db import get_file_by_filename, delete_by_filename
+from pfu.db import get_file_by_filename, get_secret, delete_by_filename
 from pfu.utils import prepare_file_details, save_file
 
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
 
-@api.before_request
-def before_request():
-    api_secret = current_app.config['AUTH_SECRET']
-    request_secret = request.headers.get('X-Auth-Secret')
-    if not request_secret or not check_password_hash(api_secret, request_secret):
-        return {'status': 'error', 'message': 'Unauthorized'}, 401
+def permission_required(permission):
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            request_secret = request.headers.get('X-Auth-Secret')
+            if not request_secret:
+                return {'status': 'error', 'message': 'Unauthorized'}, 401
+            try:
+                prefix, token = request_secret.split('-')
+            except ValueError:
+                return {'status': 'error', 'message': 'Unauthorized'}, 401
+            secret = get_secret(prefix)
+            if not secret or not check_password_hash(secret['hash'], token):
+                return {'status': 'error', 'message': 'Unauthorized'}, 401
+            if not secret.get(f'perm_{permission}'):
+                return {'status': 'error', 'message': 'Forbidden'}, 403
+            return function(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 @api.get('/file/<filename>')
+@permission_required('read')
 def details(filename):
     file = get_file_by_filename(filename)
     if not file:
@@ -25,6 +40,7 @@ def details(filename):
 
 
 @api.delete('/file/<filename>')
+@permission_required('delete')
 def delete(filename):
     if not get_file_by_filename(filename):
         return {'status': 'error', 'message': 'Not found'}, 404
@@ -33,9 +49,10 @@ def delete(filename):
     except Exception as e:
         return {'status': 'error', 'message': str(e)}, 500
     return {'status': 'success'}
-    
+
 
 @api.post('/upload')
+@permission_required('write')
 def upload():
     file = request.files.get('file')
     if not file:
