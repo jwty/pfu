@@ -43,5 +43,5 @@ def upload():
     keep_filename = 'keep_filename' in request.form
     expire_timestamp = request.form.get('expire', None, int)
     description = request.form.get('description')
-    status, file_data = save_file(file, keep_filename, expire_timestamp, description)
-    return {'status': status, 'data': file_data}
+    status, response = save_file(file, keep_filename, expire_timestamp, description)
+    return {'status': status, 'data': response}

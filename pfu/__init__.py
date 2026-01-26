@@ -1,12 +1,12 @@
 from flask import Flask
 from flask_bootstrap import Bootstrap5
-from pfu.db import configure_db
-from pfu.utils import format_datetime
-from pfu.config import config_class
-from pfu.routes_main import main
-from pfu.routes_auth import auth
-from pfu.routes_api import api
 from pfu.auth import login_manager
+from pfu.config import config_class
+from pfu.db import configure_db
+from pfu.routes_api import api
+from pfu.routes_auth import auth
+from pfu.routes_main import main
+from pfu.utils import format_datetime
 
 
 def create_app(config_class=config_class):

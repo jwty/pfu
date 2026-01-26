@@ -1,14 +1,10 @@
 import os
-from flask import current_app, request
 from datetime import datetime
-from werkzeug.utils import secure_filename
 from secrets import token_urlsafe
 from time import time
-from pfu.db import calc_md5, get_file_by_checksum, add_file_to_db, get_file_by_filename 
-
-class Messages:
-    DELETE_CONFIRM = 'File <a href="{file_url}">{filename}</a> <a href="{details_url}">(details)</a> will be deleted. This action cannot be undone. Type in your secret key to confirm:'
-    DETAILS_PROMPT = 'You need to provide the secret key to view details for file <a href="{file_url}">{filename}</a>.'
+from flask import current_app, request
+from werkzeug.utils import secure_filename
+from pfu.db import add_file_to_db, calc_md5, get_file_by_checksum, get_file_by_filename
 
 
 def format_datetime(timestamp):
@@ -37,12 +33,14 @@ def prepare_file_details(current_app, request, file_data):
 
 def save_file(file, keep_filename=False, expire_timestamp=None, description=None):
     md5_sum = calc_md5(file)
+    # Simple duplicate avoidance - if the file already exists, do not duplicate and instead return it
     if existing_file := get_file_by_checksum(md5_sum):
         return 'file_exists', prepare_file_details(current_app, request, existing_file)
     filename = secure_filename(file.filename)
     filename_root, filename_ext = os.path.splitext(filename)
     new_filename_root = token_urlsafe(current_app.config['FILENAME_LENGTH'])
     if keep_filename:
+        # Amend original filename to random token to avoid conflicts when uploading different files with same filenames
         new_filename = f'{filename_root}-{new_filename_root}{filename_ext}'
     else:
         new_filename = f'{new_filename_root}{filename_ext}'

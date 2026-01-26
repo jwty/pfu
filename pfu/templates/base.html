@@ -2,6 +2,7 @@
 {% from 'bootstrap5/utils.html' import render_messages %}
 <!doctype html>
 <html lang="en">
+
 <head>
     {% block head %}
     <meta charset="UTF-8">
@@ -14,6 +15,7 @@
     {% endblock %}
     {% endblock %}
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg mb-3">
         <div class="container">
@@ -21,11 +23,12 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar"><span class="navbar-toggler-icon"></span></button>
             <div class="collapse navbar-collapse" id="navbar">
                 <div class="navbar-nav me-auto">
-                    {{ render_nav_item('main.index', 'Home') }}
                     {% if current_user.is_authenticated %}
-                    {{ render_nav_item('auth.settings', 'Settings') }}
-                    {{ render_nav_item('auth.files', 'Files') }}
-                    {{ render_nav_item('auth.search', 'Search') }}
+                    {{ render_nav_item('main.home', 'Home') }}
+                    {{ render_nav_item('main.upload', 'Upload') }}
+                    {{ render_nav_item('main.files', 'Files') }}
+                    {{ render_nav_item('main.search', 'Search') }}
+                    {{ render_nav_item('main.settings', 'Settings') }}
                     {% endif %}
                 </div>
                 <div class="navbar-nav ms-auto">
@@ -40,11 +43,12 @@
         </div>
     </nav>
     <main class="container">
-        {{ render_messages() }}
+        {{ render_messages(dismissible=true) }}
         {% block content %}{% endblock %}
     </main>
     {{ bootstrap.load_js() }}
     {% block scripts %}
     {% endblock %}
 </body>
+
 </html>

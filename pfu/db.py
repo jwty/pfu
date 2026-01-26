@@ -1,8 +1,8 @@
 import os
 from hashlib import md5
 from peewee import *
-from playhouse.shortcuts import model_to_dict
 from playhouse.flask_utils import PaginatedQuery
+from playhouse.shortcuts import model_to_dict
 from pfu.config import config
 
 database_path = os.path.join(config['DATA_DIR'], 'database.db')

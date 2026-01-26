@@ -8,34 +8,26 @@
 <!-- Sorting for mobile/narrow views-->
 <div class="d-md-none">
     <div class="dropdown">
-    <button class="btn btn-outline-primary dropdown-toggle mb-2" type="button" data-bs-toggle="dropdown">Sorting</button>
-    <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='date', q=search_query) }}">Upload Date</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='expire_date', q=search_query) }}">Expire Date</a></li>
-        <li><a class="dropdown-item" href="{{ url_for('auth.files', sort='size', q=search_query) }}">Size</a></li>
-    </ul>
+        <button class="btn btn-outline-primary dropdown-toggle mb-2" type="button" data-bs-toggle="dropdown">Sorting</button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{{ url_for('main.files', sort='date', q=search_query) }}">Upload Date</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.files', sort='expire_date', q=search_query) }}">Expire Date</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('main.files', sort='size', q=search_query) }}">Size</a></li>
+        </ul>
     </div>
 </div>
 <div class="container-fluid border px-0 mb-3">
     <div class="row g-0 bg-light border-bottom fw-bold d-none d-md-flex align-items-center py-2 px-3">
         <div class="col-md-3">Filename</div>
         <div class="col-md-3">Description</div>
-        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='date', q=search_query) }}" class="text-decoration-none">Upload Date <i class="bi bi-sort-down"></i></a></div>
-        <div class="col-md-2"><a href="{{ url_for('auth.files', sort='expire_date', q=search_query) }}" class="text-decoration-none">Expire Date <i class="bi bi-sort-down"></i></a></div>
-        <div class="col-md-1 text-end"><a href="{{ url_for('auth.files', sort='size', q=search_query) }}" class="text-decoration-none">Size <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-2"><a href="{{ url_for('main.files', sort='date', q=search_query) }}" class="text-decoration-none">Upload Date <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-2"><a href="{{ url_for('main.files', sort='expire_date', q=search_query) }}" class="text-decoration-none">Expire Date <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-1 text-end"><a href="{{ url_for('main.files', sort='size', q=search_query) }}" class="text-decoration-none">Size <i class="bi bi-sort-down"></i></a></div>
         <div class="col-md-1 text-end">Actions</div>
     </div>
     <!-- Action buttons possibly too small to comfortably click on mobile devices -->
     {% for file in files %}
-    <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;"
-        data-filename="{{ file.filename }}"
-        data-original-filename="{{ file.original_filename }}"
-        data-size="{{ file.size | filesizeformat }}"
-        data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}"
-        data-description="{{ file.description | urlize | join or '' }}"
-        data-upload-date="{{ file.upload_date | datetime }}"
-        data-expire-date="{{ file.expire_date | datetime or ''}}"
-        data-checksum="{{ file.checksum }}">
+    <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;" data-filename="{{ file.filename }}" data-original-filename="{{ file.original_filename }}" data-size="{{ file.size | filesizeformat }}" data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" data-description="{{ file.description | urlize | join or '' }}" data-upload-date="{{ file.upload_date | datetime }}" data-expire-date="{{ file.expire_date | datetime or ''}}" data-checksum="{{ file.checksum }}">
         <div class="col-md-3 text-break pe-3">
             <span class="fw-semibold"><a href="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" target="_blank" class="text-decoration-none">{{ file.filename }}</a></span>
             <span class="d-block small text-muted">{{ file.original_filename }}</span>
@@ -53,8 +45,8 @@
             {{ file.size | filesizeformat }}
         </div>
         <div class="col-md-1 text-md-end actions-col">
-            <a href="{{ url_for('auth.edit_file', filename=file.filename, next=request.url) }}" class="bi bi-pencil-square"></a>
-            <a href="{{ url_for('auth.delete_files', filename_list=file.filename, next=request.url) }}" class="bi bi-trash"></a>
+            <a href="{{ url_for('main.edit_file', filename=file.filename, next=request.url) }}" class="bi bi-pencil-square"></a>
+            <a href="{{ url_for('main.delete_files', filename_list=file.filename, next=request.url) }}" class="bi bi-trash"></a>
             <input class="form-check-input" type="checkbox" name="mark_for_deletion" value="{{ file.filename }}">
         </div>
     </div>
@@ -63,21 +55,21 @@
 <div class="d-md-flex justify-content-between align-items-center mb-4">
     <div class="text-muted small">Currently on page {{ current_page }} of {{ possible_pages }}</div>
     <div class="d-md-flex gap-2">
-        <a id="delete-selected-btn" class="btn btn-danger disabled" href="#" data-base-url="{{ url_for('auth.delete_files', filename_list='') }}" data-current-files-view="{{ request.url }}">Delete selected</a>
+        <a id="delete-selected-btn" class="btn btn-danger disabled" href="#" data-base-url="{{ url_for('main.delete_files', filename_list='') }}" data-current-files-view="{{ request.url }}">Delete selected</a>
         <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">Files per page: {{ request.args.get('c', 10) }}</button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=10, sort=request.args.get('sort'), q=search_query) }}">10</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=25, sort=request.args.get('sort'), q=search_query) }}">25</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=50, sort=request.args.get('sort'), q=search_query) }}">50</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('auth.files', c=100, sort=request.args.get('sort'), q=search_query) }}">100</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('main.files', c=10, sort=request.args.get('sort'), q=search_query) }}">10</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('main.files', c=25, sort=request.args.get('sort'), q=search_query) }}">25</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('main.files', c=50, sort=request.args.get('sort'), q=search_query) }}">50</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('main.files', c=100, sort=request.args.get('sort'), q=search_query) }}">100</a></li>
             </ul>
         </div>
         <div class="btn-group">
-            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=1, q=search_query) }}"><i class="bi bi-chevron-bar-left"></i></a>
-            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page - 1, q=search_query) }}"><i class="bi bi-arrow-left"></i></a>
-            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page + 1, q=search_query) }}"><i class="bi bi-arrow-right"></i></a>
-            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('auth.files', c=request.args.get('c'), sort=request.args.get('sort'), page=possible_pages, q=search_query) }}"><i class="bi bi-chevron-bar-right"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('main.files', c=request.args.get('c'), sort=request.args.get('sort'), page=1, q=search_query) }}"><i class="bi bi-chevron-bar-left"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == 1 %}disabled{% endif %}" href="{{ url_for('main.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page - 1, q=search_query) }}"><i class="bi bi-arrow-left"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('main.files', c=request.args.get('c'), sort=request.args.get('sort'), page=current_page + 1, q=search_query) }}"><i class="bi bi-arrow-right"></i></a>
+            <a class="btn btn-outline-primary {% if current_page == possible_pages %}disabled{% endif %}" href="{{ url_for('main.files', c=request.args.get('c'), sort=request.args.get('sort'), page=possible_pages, q=search_query) }}"><i class="bi bi-chevron-bar-right"></i></a>
         </div>
     </div>
 </div>
@@ -87,12 +79,17 @@
         <button type="button" class="btn-close" onclick="document.getElementById('details-table').classList.add('d-none')"></button>
     </div>
     <div class="card">
-    <div class="table-responsive">
-        <table class="table mb-0">
-            <thead class="table-light"><tr><th scope="col" style="width: 25%">Key</th><th scope="col">Value</th></tr></thead>
-            <tbody id="details-body" class="align-middle"></tbody>
-        </table>
-    </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 25%">Key</th>
+                        <th scope="col">Value</th>
+                    </tr>
+                </thead>
+                <tbody id="details-body" class="align-middle"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
