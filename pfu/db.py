@@ -83,6 +83,13 @@ def get_file_by_filename(filename):
     return model_to_dict(file)
 
 
+def update_file(filename, description, expire_date=None):
+    file = Files.get(Files.filename == filename)
+    file.description = description
+    file.expire_date = expire_date
+    file.save()
+
+
 def calc_md5(file_up):
     md5_obj = md5()
     chunk_size = config['CHUNK_SIZE']

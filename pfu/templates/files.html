@@ -53,8 +53,7 @@
             {{ file.size | filesizeformat }}
         </div>
         <div class="col-md-1 text-md-end actions-col">
-            <!-- TODO: make this work -->
-            <a href="#" class="bi bi-pencil-square" target="_blank"></a>
+            <a href="{{ url_for('auth.edit_file', filename=file.filename, next=request.url) }}" class="bi bi-pencil-square"></a>
             <a href="{{ url_for('auth.delete_files', filename_list=file.filename, next=request.url) }}" class="bi bi-trash"></a>
             <input class="form-check-input" type="checkbox" name="mark_for_deletion" value="{{ file.filename }}">
         </div>
@@ -96,6 +95,8 @@
     </div>
     </div>
 </div>
+{% endblock %}
+{% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // File details

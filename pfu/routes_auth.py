@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, request, url_for, redirect, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 from pfu.auth import User
-from pfu.db import get_files_count, get_files_expiring_count, get_files_size, get_files_page, get_file_by_filename, delete_by_filename
-
+from pfu.db import get_files_count, get_files_expiring_count, get_files_size, get_files_page, get_file_by_filename, delete_by_filename, update_file
+from datetime import datetime
 
 auth = Blueprint('auth', __name__)
 
@@ -113,5 +113,36 @@ def delete_files_post(filename_list):
             flash(error, 'error')
     else:
         flash('Files deleted successfully', 'success')
+    next_view = request.args.get('next')
+    return redirect(next_view or url_for('auth.files'))
+
+
+@auth.get('/edit/<filename>')
+@login_required
+def edit_file(filename):
+    file = get_file_by_filename(filename)
+    if not file:
+        flash('File not found', 'error')
+        return redirect(url_for('auth.files'))
+    next_view = request.args.get('next')
+    expire_date = datetime.fromtimestamp(file.get('expire_date')).strftime('%Y-%m-%d') if file.get('expire_date') else ''
+    expire_time = datetime.fromtimestamp(file.get('expire_date')).strftime('%H:%M') if file.get('expire_date') else ''
+    return render_template('edit.html', file=file, next_view=next_view, expire_date=expire_date, expire_time=expire_time)
+
+
+@auth.post('/edit/<filename>')
+@login_required
+def edit_file_post(filename):
+    description = request.form.get('description')
+    expire_date = request.form.get('expire-date')
+    expire_time = request.form.get('expire-time') or '00:00'
+    expire_timestamp = None
+    if expire_date:
+        expire_timestamp = datetime.combine(datetime.strptime(expire_date, '%Y-%m-%d'), datetime.strptime(expire_time, '%H:%M').time()).timestamp()
+    try:
+        update_file(filename, description, expire_timestamp)
+        flash('File updated successfully', 'success')
+    except Exception as e:
+        flash(f'Error updating file {filename}: {e}', 'error')
     next_view = request.args.get('next')
     return redirect(next_view or url_for('auth.files'))
