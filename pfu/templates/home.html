@@ -3,7 +3,8 @@
 {% block content %}
 <h4>Home</h4>
 <h5>Statistics</h5>
-<div>Files currently in database: <strong>{{ files_count }}</strong></div>
-<div>Files currently set for expiration: <strong>{{ files_expiring_count }}</strong></div>
-<div>Combined size (as stored in database): <strong>{{ files_size | filesizeformat }}</strong></div>
+<div class="small text-muted"><i>(as of {{ stats.last_updated }})</i></div>
+<div>Files currently in database: <strong>{{ stats.files_count }}</strong></div>
+<div>Files currently set for expiration: <strong>{{ stats.files_expiring_count }}</strong></div>
+<div>Combined size (as stored in database): <strong>{{ stats.files_size | filesizeformat }}</strong></div>
 {% endblock %}

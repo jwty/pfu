@@ -6,7 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "bootstrap-flask>=2.5.0",
+    "colorlog>=6.10.1",
     "flask>=3.1.2",
+    "flask-apscheduler>=1.13.1",
     "flask-login>=0.6.3",
     "peewee>=3.18.3",
     "waitress>=3.0.2",

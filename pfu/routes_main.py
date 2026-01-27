@@ -2,8 +2,8 @@ from datetime import datetime
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from markupsafe import Markup
-from pfu.db import delete_by_filename, delete_secret, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_page, get_files_size, get_secrets, new_secret, update_file
-from pfu.utils import save_file
+from pfu.db import delete_by_filename, delete_secret, get_file_by_filename, get_files_page, get_secrets, new_secret, update_file
+from pfu.utils import get_stats, save_file
 
 
 main = Blueprint('main', __name__)
@@ -47,11 +47,8 @@ def upload_post():
 @main.get('/home')
 @login_required
 def home():
-    # TODO: Cache these
-    files_count = get_files_count()
-    files_expiring_count = get_files_expiring_count()
-    files_size = get_files_size()
-    return render_template('home.html', files_count=files_count, files_expiring_count=files_expiring_count, files_size=files_size)
+    stats = get_stats()
+    return render_template('home.html', stats=stats)
 
 
 @main.get('/settings')

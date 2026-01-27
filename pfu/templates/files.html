@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Files (sorted by {{ sort_by | replace('_', ' ') }}){% endblock %}
 {% block content %}
-<h4>Files (sorted by {{ sort_by | replace('_', ' ') }})</h4>
+<h4 class="mb-3">Files (sorted by {{ sort_by | replace('_', ' ') }})</h4>
 {% if search_query %}
 <h5 class="text-muted">Search results for: <span class="text-primary">{{ search_query }}</span></h5>
 {% endif %}
@@ -73,9 +73,9 @@
         </div>
     </div>
 </div>
-<div id="details-table" class="d-none mb-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">File details for <strong id="details-filename"></strong></h4>
+<div id="details-table" class="d-none">
+    <div class="d-flex justify-content-between align-items-center">
+        <h4>File details for <strong id="details-filename"></strong></h4>
         <button type="button" class="btn-close" onclick="document.getElementById('details-table').classList.add('d-none')"></button>
     </div>
     <div class="card">
