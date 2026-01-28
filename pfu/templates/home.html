@@ -7,4 +7,8 @@
 <div>Files currently in database: <strong>{{ stats.files_count }}</strong></div>
 <div>Files currently set for expiration: <strong>{{ stats.files_expiring_count }}</strong></div>
 <div>Combined size (as stored in database): <strong>{{ stats.files_size | filesizeformat }}</strong></div>
+<h5>Actions</h5>
+<a href="{{ url_for('main.update_stats_route') }}" class="btn btn-primary mb-1"><i class="bi bi-arrow-clockwise"></i> Update statistics</a>
+<a href="{{ url_for('main.check_for_orphans') }}" class="btn btn-primary mb-1">Check for orphans</a>
+<a href="{{ url_for('auth.logout_all_sessions') }}" class="btn btn-danger mb-1"><i class="bi bi-box-arrow-right"></i> Logout all sessions</a>
 {% endblock %}

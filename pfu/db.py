@@ -34,7 +34,7 @@ class BaseModel(Model):
 class Files(BaseModel):
     filename = TextField(index=True)
     original_filename = TextField()
-    description = TextField(null=True)
+    description = TextField()
     checksum = TextField(unique=True)
     upload_date = IntegerField()
     expire_date = IntegerField(null=True)
@@ -121,6 +121,10 @@ def get_files_page(per_page, page, sort_by, query=None):
     current_page = page_query.get_page()
     possible_pages = page_query.get_page_count()
     return files, current_page, possible_pages
+
+
+def get_files_list():
+    return [file.filename for file in Files.select()]
 
 
 def get_secrets():

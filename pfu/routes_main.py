@@ -2,8 +2,9 @@ from datetime import datetime
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from markupsafe import Markup
-from pfu.db import delete_by_filename, delete_secret, get_file_by_filename, get_files_page, get_secrets, new_secret, update_file
-from pfu.utils import get_stats, save_file
+from os import listdir
+from pfu.db import delete_by_filename, delete_secret, get_file_by_filename, get_files_list, get_files_page, get_secrets, new_secret, update_file
+from pfu.utils import get_stats, save_file, update_stats
 
 
 main = Blueprint('main', __name__)
@@ -51,11 +52,38 @@ def home():
     return render_template('home.html', stats=stats)
 
 
-@main.get('/settings')
+@main.get('/update-stats')
 @login_required
-def settings():
+def update_stats_route():
+    update_stats()
+    return redirect(url_for('main.home'))
+
+
+@main.get('/check-for-orphans')
+@login_required
+def check_for_orphans():
+    files_in_db = set(get_files_list())
+    files_in_dir = set(listdir(current_app.config['UPLOAD_DIR']))
+    orphaned_files = list(files_in_dir - files_in_db)
+    orphaned_db_entries = list(files_in_db - files_in_dir)
+    categories = [('Orphans in directory', orphaned_files), ('Orphans in database', orphaned_db_entries)]
+    messages = []
+    for title, items in categories:
+        if items:
+            list_items = ''.join(f'<li>{item}</li>' for item in items)
+            messages.append(f'{title}: <ul>{list_items}</ul>')
+    if messages:
+        flash(Markup(''.join(messages)), 'warning')
+    else:
+        flash('No orphaned files found', 'success')
+    return redirect(url_for('main.home'))
+
+
+@main.get('/api_secrets')
+@login_required
+def api_secrets():
     secrets = get_secrets()
-    return render_template('settings.html', secrets=secrets)
+    return render_template('api_secrets.html', secrets=secrets)
 
 
 @main.post('/create_secret')

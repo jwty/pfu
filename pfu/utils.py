@@ -5,7 +5,7 @@ from datetime import datetime
 from secrets import token_urlsafe
 from flask import current_app, request
 from werkzeug.utils import secure_filename
-from pfu.db import add_expire_job, add_file_to_db, get_file_by_checksum, get_file_by_filename
+from pfu.db import add_expire_job, add_file_to_db, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size
 from pfu.scheduler import next_midnight
 
 
@@ -76,3 +76,15 @@ def get_stats():
         stats = json.load(f)
     stats['last_updated'] = datetime.fromtimestamp(stats['last_updated']).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
     return stats
+
+
+def update_stats():
+    stats_file = os.path.join(current_app.config['DATA_DIR'], 'stats.json')
+    stats = {
+        'files_count': get_files_count(),
+        'files_expiring_count': get_files_expiring_count(),
+        'files_size': get_files_size(),
+        'last_updated': int(datetime.now().timestamp())
+    }
+    with open(stats_file, 'w') as f:
+        json.dump(stats, f, indent=4)

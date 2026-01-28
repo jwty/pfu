@@ -1,9 +1,8 @@
 from flask import Blueprint, current_app, request
 from functools import wraps
 from werkzeug.security import check_password_hash
-from pfu.db import add_expire_job,get_file_by_filename, get_secret, delete_by_filename
+from pfu.db import get_file_by_filename, get_secret, delete_by_filename
 from pfu.utils import prepare_file_details, save_file
-from pfu.scheduler import next_midnight
 
 
 api = Blueprint('api', __name__, url_prefix='/api')
@@ -60,6 +59,6 @@ def upload():
         return {'status': 'error', 'message': 'No file provided'}, 400
     keep_filename = 'keep_filename' in request.form
     expire_timestamp = request.form.get('expire', None, int)
-    description = request.form.get('description')
+    description = request.form.get('description', '')
     status, response = save_file(file, keep_filename, expire_timestamp, description)
     return {'status': status, 'data': response}

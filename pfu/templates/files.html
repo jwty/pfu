@@ -56,6 +56,7 @@
     <div class="text-muted small">Currently on page {{ current_page }} of {{ possible_pages }}</div>
     <div class="d-md-flex gap-2">
         <a id="delete-selected-btn" class="btn btn-danger disabled" href="#" data-base-url="{{ url_for('main.delete_files', filename_list='') }}" data-current-files-view="{{ request.url }}">Delete selected</a>
+        <button id="select-all-btn" class="btn btn-outline-primary">Select all</button>
         <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">Files per page: {{ request.args.get('c', 10) }}</button>
             <ul class="dropdown-menu">
@@ -113,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
                              { key: 'File URL', value: `<a href="${data.fileUrl}" target="_blank">${data.fileUrl}</a>` },
                              { key: 'Description', value: data.description ? `<span style="white-space: pre-wrap;">${data.description}</span>` : '<span class="text-muted fst-italic small">(no description)</span>' },
                              { key: 'Upload Date', value: data.uploadDate },
-                             { key: 'Expire Date', value: data.expireDate || '<span class="text-muted fst-italic">(no exp. date)</span>' },
+                             { key: 'Expire Date', value: data.expireDate || '<span class="text-muted fst-italic small">(no exp. date)</span>' },
                              { key: 'Checksum', value: `<code class="small">${data.checksum}</code>` }];
             detailsBody.innerHTML = '';
             fields.forEach(field => { const tr = document.createElement('tr');
@@ -140,6 +141,12 @@ document.addEventListener('DOMContentLoaded', function() {
             deleteSelectedBtn.href = '#';
         }}
     deleteCheckboxes.forEach(cb => cb.addEventListener('change', updateDeleteButton))
+    // Select all
+    const selectAllBtn = document.getElementById('select-all-btn');
+    selectAllBtn.addEventListener('click', () => {
+        deleteCheckboxes.forEach(cb => cb.checked = true);
+        updateDeleteButton();
+    })
 })
 </script>
 {% endblock %}
