@@ -1,10 +1,23 @@
 import os
 import json
+from hashlib import md5
 from datetime import datetime
 from secrets import token_urlsafe
 from flask import current_app, request
 from werkzeug.utils import secure_filename
-from pfu.db import add_file_to_db, calc_md5, get_file_by_checksum, get_file_by_filename
+from pfu.db import add_expire_job, add_file_to_db, get_file_by_checksum, get_file_by_filename
+from pfu.scheduler import next_midnight
+
+
+def calc_md5(file_up):
+    md5_obj = md5()
+    chunk_size = current_app.config['CHUNK_SIZE']
+    file_buffer = file_up.read(chunk_size)
+    while file_buffer:
+        md5_obj.update(file_buffer)
+        file_buffer = file_up.read(chunk_size)
+    file_up.seek(0)
+    return md5_obj.hexdigest()
 
 
 def format_datetime(timestamp):
@@ -51,6 +64,8 @@ def save_file(file, keep_filename=False, expire_timestamp=None, description=None
         return 'error', str(e)
     file_size = os.stat(file_path).st_size
     add_file_to_db(new_filename, file.filename, description, md5_sum, int(datetime.now().timestamp()), expire_timestamp, file_size)
+    if expire_timestamp and expire_timestamp <= next_midnight():
+        add_expire_job(new_filename, expire_timestamp)
     file_data = get_file_by_filename(new_filename)
     return 'success', prepare_file_details(current_app, request, file_data)
 

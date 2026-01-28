@@ -15,7 +15,7 @@ from pfu.utils import format_datetime
 formatter = colorlog.ColoredFormatter(
     '%(log_color)s[%(asctime)s] [%(levelname)s] %(name)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S %Z',
-    log_colors = {'INFO': 'white', 'WARNING': 'yellow', 'ERROR': 'red', 'CRITICAL': 'red'}
+    log_colors = {'DEBUG': 'blue', 'INFO': 'white', 'WARNING': 'yellow', 'ERROR': 'red', 'CRITICAL': 'red'}
 )
 
 

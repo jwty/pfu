@@ -1,18 +1,19 @@
 import os
-from hashlib import md5
+from datetime import datetime
 from peewee import *
 from playhouse.flask_utils import PaginatedQuery
 from playhouse.shortcuts import model_to_dict
 from secrets import token_hex
 from werkzeug.security import generate_password_hash
 from pfu.config import config
+from pfu.scheduler import scheduler, next_midnight
 
 database_path = os.path.join(config['DATA_DIR'], 'database.db')
 database = SqliteDatabase(database_path, pragmas={'foreign_keys': 1})
 
 def initialize_db():
     database.connect()
-    database.create_tables([Files, ExpiringFiles, Secrets])
+    database.create_tables([Files, Secrets])
     database.close()
     return database
 
@@ -43,11 +44,6 @@ class Files(BaseModel):
         table_name = 'files'
 
 
-class ExpiringFiles(BaseModel):
-    file = ForeignKeyField(Files, on_delete='CASCADE')
-    expire_date = IntegerField(null=True)
-
-
 class Secrets(BaseModel):
     name = TextField(unique=True)
     description = TextField(null=True)
@@ -60,14 +56,15 @@ class Secrets(BaseModel):
 
 
 def add_file_to_db(filename, original_filename, description, checksum, upload_date, expire_date, size):
-    file = Files.create(**locals())
-    if expire_date:
-        ExpiringFiles.create(file=file, expire_date=expire_date)
+    Files.create(filename=filename, original_filename=original_filename, description=description, checksum=checksum, upload_date=upload_date, expire_date=expire_date, size=size)
 
 
 def delete_by_filename(filename):
+    try:
+        os.remove(os.path.join(config['UPLOAD_DIR'], filename))
+    except FileNotFoundError:
+        pass
     Files.delete().where(Files.filename == filename).execute()
-    os.remove(os.path.join(config['UPLOAD_DIR'], filename))
 
 
 def get_file_by_checksum(checksum):
@@ -91,17 +88,11 @@ def update_file(filename, description, expire_date=None):
     file.description = description
     file.expire_date = expire_date
     file.save()
-
-
-def calc_md5(file_up):
-    md5_obj = md5()
-    chunk_size = config['CHUNK_SIZE']
-    file_buffer = file_up.read(chunk_size)
-    while file_buffer:
-        md5_obj.update(file_buffer)
-        file_buffer = file_up.read(chunk_size)
-    file_up.seek(0)
-    return md5_obj.hexdigest()
+    has_expire_job = scheduler.get_job(filename)
+    if expire_date and expire_date <= next_midnight() and not has_expire_job:
+        add_expire_job(filename, expire_date)
+    if expire_date == None and has_expire_job:
+        scheduler.remove_job(filename)
 
 
 def get_files_count():
@@ -109,7 +100,7 @@ def get_files_count():
 
 
 def get_files_expiring_count():
-    return ExpiringFiles.select().count()
+    return Files.select().where(Files.expire_date.is_null(False)).count()
 
 
 def get_files_size():
@@ -163,3 +154,21 @@ def delete_secret(secret_id):
     except DoesNotExist:
         return 'error', 'Secret not found'
     return 'success', 'Secret deleted successfully'
+
+
+def get_today_expiring_files():
+    expiring_files_query = Files.select(Files.filename, Files.expire_date).where(Files.expire_date <= next_midnight())
+    return [model_to_dict(expiring_file, only=[Files.filename, Files.expire_date]) for expiring_file in expiring_files_query]
+
+
+# It has to sit here to avoid circular import lol
+def add_expire_job(filename, expire_date):
+    scheduler.add_job(
+            id=filename,
+            name=f'Expire {filename}',
+            func=delete_by_filename,
+            args=[filename],
+            trigger='date',
+            run_date=datetime.fromtimestamp(expire_date),
+            misfire_grace_time=None
+        )
