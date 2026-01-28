@@ -2,6 +2,10 @@
 {% block title %}Settings{% endblock %}
 {% block content %}
 <h4>Settings</h4>
+<h5>Actions</h5>
+<div class="mb-3">
+    <a href="{{ url_for('auth.logout_all_sessions') }}" class="btn btn-primary">Logout all sessions</a>
+</div>
 <h5>API keys</h5>
 <div class="container-fluid border border-bottom-0 px-0 mb-3">
     <div class="row g-0 bg-light border-bottom fw-bold d-none d-md-flex align-items-center py-2 px-3">

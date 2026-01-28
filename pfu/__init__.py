@@ -25,7 +25,7 @@ logger.addHandler(logging.StreamHandler())
 logger.handlers[0].setFormatter(formatter)
 
 
-def create_app(config_class=config_class):
+def create_app():
     logger.info("Starting pfu server")
     app = Flask(__name__)
     app.config.from_object(config_class)

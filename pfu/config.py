@@ -4,7 +4,6 @@ import tomllib
 
 DEFAULTS = {
     'SECRET_KEY': 'dev-key-change-me',
-    'TEST_VAR': 'python defaults',
     'DATA_DIR': 'data',
     'UPLOAD_DIR': 'uploads',
     # TODO: Should probably contain entire address to support serving from subdomain etc.
