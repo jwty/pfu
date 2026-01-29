@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from peewee import *
 from playhouse.flask_utils import PaginatedQuery
 from playhouse.shortcuts import model_to_dict
@@ -163,16 +162,3 @@ def delete_secret(secret_id):
 def get_today_expiring_files():
     expiring_files_query = Files.select(Files.filename, Files.expire_date).where(Files.expire_date <= next_midnight())
     return [model_to_dict(expiring_file, only=[Files.filename, Files.expire_date]) for expiring_file in expiring_files_query]
-
-
-# It has to sit here to avoid circular import lol
-def add_expire_job(filename, expire_date):
-    scheduler.add_job(
-            id=filename,
-            name=f'Expire {filename}',
-            func=delete_by_filename,
-            args=[filename],
-            trigger='date',
-            run_date=datetime.fromtimestamp(expire_date),
-            misfire_grace_time=None
-        )

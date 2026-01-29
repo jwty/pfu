@@ -1,12 +1,13 @@
 import os
 import json
-from hashlib import md5
 from datetime import datetime
+from hashlib import md5
 from secrets import token_urlsafe
 from flask import current_app, request
 from werkzeug.utils import secure_filename
-from pfu.db import add_expire_job, add_file_to_db, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size
+from pfu.db import add_file_to_db, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size
 from pfu.scheduler import next_midnight
+from pfu.jobs import add_expire_job
 
 
 def calc_md5(file_up):

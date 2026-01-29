@@ -1,3 +1,4 @@
+import logging
 import os
 import tomllib
 
@@ -13,11 +14,14 @@ DEFAULTS = {
     'UPDATE_STATS_INTERVAL': 1, # In hours
     'HOSTNAME': '0.0.0.0',
     'PORT': '8080',
+    'LOG_LEVEL': 'INFO',
     # Default admin account (admin:password)
     'ADMIN_USERNAME': 'admin',
-    'ADMIN_PASSWORD': 'scrypt:32768:8:1$vvnNBZL0bMiA9wPG$5edcc73a73eedeca672f182fc50a75c6a01f3a0fe3f9b912d33050b43a6d4e6c15d4d3ec7ab09c82ed9c31856b162eb0456f84f4baf1359d06992eed59a518f7',
+    'ADMIN_PASSWORD': 'scrypt:32768:8:1$vvnNBZL0bMiA9wPG$5edcc73a73eedeca672f182fc50a75c6a01f3a0fe3f9b912d33050b43a6d4e6c15d4d3ec7ab09c82ed9c31856b162eb0456f84f4baf1359d06992eed59a518f7'
 }
 
+
+logger = logging.getLogger(__name__)
 
 # Config class for Flask compatibility
 class ConfigClass(object):
@@ -36,8 +40,7 @@ def load_config():
             with open(config_file, 'rb') as file:
                 config.update(tomllib.load(file))
         except (tomllib.TOMLDecodeError, OSError) as e:
-            # TODO: This should be a log
-            print(f"could not load config file: {e}")
+            logger.error(f"could not load config file: {e}")
     # Override with env vars (they have highest priority)
     for key in config.keys():
         env_var = f'{env_prefix}{key}'
