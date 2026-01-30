@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request
 from functools import wraps
 from werkzeug.security import check_password_hash
@@ -8,27 +9,41 @@ from pfu.scheduler import scheduler, next_midnight
 from pfu.utils import file_details_with_url, remove_file, save_file
 
 api = Blueprint('api', __name__, url_prefix='/api')
+logger = logging.getLogger(__name__)
 
 
 def permission_required(permission):
     def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
+            client_ip = request.remote_addr
+            endpoint = f'{request.method} {request.path}'
             request_secret = request.headers.get('X-Auth-Secret')
-            if not request_secret:
+            secret = validate_secret(request_secret)
+            if not secret:
+                logger.warning(f'Unauthorized, IP: {client_ip}, endpoint: {endpoint}')
                 return {'status': Status.ERROR.value, 'message': 'Unauthorized'}, 401
-            try:
-                prefix, token = request_secret.split('-')
-            except ValueError:
-                return {'status': Status.ERROR.value, 'message': 'Unauthorized'}, 401
-            secret = get_secret(prefix)
-            if not secret or not check_password_hash(secret['hash'], token):
-                return {'status': Status.ERROR.value, 'message': 'Unauthorized'}, 401
+            secret_name = secret.get('name')
             if not secret.get(f'perm_{permission}'):
+                logger.info(f'Insufficient permissions, secret: {secret_name}, IP: {client_ip}, endpoint: {endpoint}')
                 return {'status': Status.ERROR.value, 'message': 'Forbidden'}, 403
+            logger.info(f'API access, secret: {secret_name}, IP: {client_ip}, endpoint: {endpoint}')
             return function(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def validate_secret(request_secret):
+    if not request_secret:
+        return None
+    try:
+        prefix, token = request_secret.split('-')
+    except ValueError:
+        return None
+    secret = get_secret(prefix=prefix)
+    if not secret or not check_password_hash(secret['hash'], token):
+        return None
+    return secret
 
 
 @api.get('/file/<filename>')

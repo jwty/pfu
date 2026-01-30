@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 from datetime import datetime
@@ -7,6 +8,8 @@ from werkzeug.utils import secure_filename
 from pfu.db import add_file_to_db, delete_file_record, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size
 from pfu.config import config
 from pfu.responses import Result
+
+logger = logging.getLogger(__name__)
 
 
 def calc_md5(file_up):
@@ -54,10 +57,12 @@ def save_file(file, keep_filename=False, expire_timestamp=None, description=None
     try:
         file.save(file_path)
     except (IOError, OSError, PermissionError) as e:
+        logger.error(f'Failed to save file {new_filename}: {str(e)}')
         return Result.error(f'Failed to save file {new_filename}: {str(e)}')
     file_size = os.stat(file_path).st_size
     add_file_to_db(new_filename, file.filename, description, md5_sum, int(datetime.now().timestamp()), expire_timestamp, file_size)
     file_data = get_file_by_filename(new_filename)
+    logger.info(f'File saved: {new_filename} ({file_size} bytes)')
     return Result.success(file_details_with_url(file_data))
 
 
@@ -68,12 +73,15 @@ def remove_file(filename):
     except FileNotFoundError:
         pass  # File already deleted, that's fine
     except (IOError, OSError, PermissionError) as e:
+        logger.error(f'Failed to remove file {filename}: {str(e)}')
         return Result.error(f'Failed to remove file {filename}: {str(e)}')
     try:
         delete_file_record(filename)
     except Exception as e:
         # Generic since it should only catch database errors
+        logger.error(f'Failed to delete database record for {filename}: {str(e)}')
         return Result.error(f'Failed to delete database record for file {filename}: {str(e)}')
+    logger.info(f'File removed: {filename}')
     return Result.success()
 
 

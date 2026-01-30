@@ -130,9 +130,12 @@ def get_secrets():
     return [model_to_dict(secret) for secret in Secrets.select()]
 
 
-def get_secret(prefix):
+def get_secret(prefix=None, secret_id=None):
     try:
-        secret = Secrets.get(Secrets.prefix == prefix)
+        if prefix:
+            secret = Secrets.get(Secrets.prefix == prefix)
+        elif secret_id:
+            secret = Secrets.get(Secrets.id == secret_id)
     except DoesNotExist:
         return None
     return model_to_dict(secret)

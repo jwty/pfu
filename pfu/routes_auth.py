@@ -1,9 +1,11 @@
+import logging
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash
 from pfu.auth import User, new_session_token
 
 auth = Blueprint('auth', __name__)
+logger = logging.getLogger(__name__)
 
 
 @auth.get('/login')
@@ -21,9 +23,11 @@ def login_post():
     remember_user = True if request.form.get('remember_user') else False
     user = User()
     if username != user.username or not check_password_hash(user.password, password):
+        logger.warning(f'Failed login attempt from IP {request.remote_addr}')
         flash('Invalid credentials', 'error')
         return render_template('login.html')
     login_user(user, remember=remember_user)
+    logger.info(f'Admin logged in from IP {request.remote_addr}')
     flash('Logged in successfully', 'success')
     next_page = request.args.get('next')
     if not next_page or not next_page.startswith('/'):
@@ -44,5 +48,6 @@ def logout():
 def logout_all_sessions():
     new_session_token()
     logout_user()
+    logger.debug(f'All sessions invalidated')
     flash('Logged out from all sessions successfully', 'success')
     return redirect(url_for('main.index'))

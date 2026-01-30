@@ -1,11 +1,13 @@
+import logging
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from markupsafe import Markup
 from os import listdir
-from pfu.db import delete_secret, get_files_list, get_secrets, new_secret
+from pfu.db import delete_secret, get_files_list, get_secrets, get_secret, new_secret
 from pfu.utils import update_stats
 
 admin = Blueprint('admin', __name__)
+logger = logging.getLogger(__name__)
 
 
 @admin.get('/update-stats')
@@ -46,6 +48,7 @@ def create_secret():
     perm_delete = 'perm_delete' in request.form
     result = new_secret(name, description, perm_read, perm_write, perm_delete)
     if result.is_success:
+        logger.info(f'API secret created: {name}, permissions: read = {perm_read}, write = {perm_write}, delete = {perm_delete}')
         flash(Markup(f'Secret created successfully: <code>{result.data}</code>'), 'success')
     else:
         flash(f'Something went wrong: {result.error}', 'error')
@@ -55,8 +58,11 @@ def create_secret():
 @admin.post('/delete_secret/<secret_id>')
 @login_required
 def delete_secret_post(secret_id):
+    secret = get_secret(secret_id=secret_id)
+    secret_name = secret.get('name') if secret else None
     result = delete_secret(secret_id)
     if result.is_success:
+        logger.info(f'API secret deleted: {secret_name}')
         flash('Secret deleted successfully', 'success')
     else:
         flash(f'Something went wrong: {result.error}', 'error')
