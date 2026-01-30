@@ -3,6 +3,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash
 from pfu.auth import User, new_session_token
+from pfu.config import warnings
 
 auth = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
@@ -29,6 +30,9 @@ def login_post():
     login_user(user, remember=remember_user)
     logger.info(f'Admin logged in from IP {request.remote_addr}')
     flash('Logged in successfully', 'success')
+    # Flash security warnings if any exist
+    for warning in warnings:
+        flash(warning, 'warning')
     next_page = request.args.get('next')
     if not next_page or not next_page.startswith('/'):
         next_page = url_for('main.home')

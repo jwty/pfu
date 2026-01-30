@@ -2,6 +2,7 @@ import logging
 import os
 import tomllib
 
+# Do not change values here - use environment variables or config.toml instead
 DEFAULTS = {
     'SECRET_KEY': 'dev-key-change-me',
     'DATA_DIR': 'data',
@@ -50,3 +51,18 @@ def load_config():
 
 config_dict = load_config()
 config = ConfigClass(config_dict)
+
+# Security warnings for default values
+warnings = []
+if config.SECRET_KEY == DEFAULTS['SECRET_KEY']:
+    msg = 'SECRET_KEY is using default value!'
+    logger.warning(msg)
+    warnings.append(msg)
+if config.ADMIN_USERNAME == DEFAULTS['ADMIN_USERNAME']:
+    msg = 'ADMIN_USERNAME is using default value!'
+    logger.warning(msg)
+    warnings.append(msg)
+if config.ADMIN_PASSWORD == DEFAULTS['ADMIN_PASSWORD']:
+    msg = 'ADMIN_PASSWORD is using default value!'
+    logger.warning(msg)
+    warnings.append(msg)

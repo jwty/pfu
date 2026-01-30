@@ -27,9 +27,9 @@
     </div>
     <!-- Action buttons possibly too small to comfortably click on mobile devices -->
     {% for file in files %}
-    <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;" data-filename="{{ file.filename }}" data-original-filename="{{ file.original_filename }}" data-size="{{ file.size | filesizeformat }}" data-file-url="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" data-description="{{ file.description | urlize | join or '' }}" data-upload-date="{{ file.upload_date | datetime }}" data-expire-date="{{ file.expire_date | datetime or ''}}" data-checksum="{{ file.checksum }}">
+    <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;" data-filename="{{ file.filename }}" data-original-filename="{{ file.original_filename }}" data-size="{{ file.size | filesizeformat }}" data-file-url="{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" data-description="{{ file.description | urlize | join or '' }}" data-upload-date="{{ file.upload_date | datetime }}" data-expire-date="{{ file.expire_date | datetime or ''}}" data-checksum="{{ file.checksum }}">
         <div class="col-md-3 text-break pe-3">
-            <span class="fw-semibold"><a href="{{ request.url_root }}{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" target="_blank" class="text-decoration-none">{{ file.filename }}</a></span>
+            <span class="fw-semibold"><a href="{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" target="_blank" class="text-decoration-none">{{ file.filename }}</a></span>
             <span class="d-block small text-muted">{{ file.original_filename }}</span>
         </div>
         <div class="col-md-3 text-truncate pe-3">
