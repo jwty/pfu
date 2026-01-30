@@ -10,6 +10,7 @@ from pfu.routes_auth import auth
 from pfu.routes_main import main
 from pfu.scheduler import scheduler
 from pfu.utils import format_datetime
+from pfu.__version__ import __version__
 
 
 def create_app():
@@ -31,4 +32,9 @@ def create_app():
     scheduler.init_app(app)
     scheduler.start()
     import pfu.tasks  # Importing here to register tasks via decorators
+
+    @app.context_processor
+    def inject_version():
+        return {'app_version': __version__}
+
     return app

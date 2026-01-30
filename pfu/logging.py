@@ -1,6 +1,7 @@
 import colorlog
 import logging
 import warnings
+from pfu.__version__ import __version__
 
 # A bit of fluff for the startup message
 logging.addLevelName(100, 'WELCOME')
@@ -23,4 +24,4 @@ logging.captureWarnings(True)
 warnings_logger = logging.getLogger('py.warnings')
 warnings_logger.addHandler(logger.handlers[0])
 
-logger.log(100, "Logging initialised, starting pfu server")
+logger.log(100, f"Logging initialised, starting pfu server v{__version__}")
