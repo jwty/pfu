@@ -1,7 +1,6 @@
 from datetime import datetime, time, timedelta
 from flask_apscheduler import APScheduler
 
-
 scheduler = APScheduler()
 
 

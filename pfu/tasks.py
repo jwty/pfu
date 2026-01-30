@@ -1,17 +1,12 @@
-# import logging
 from datetime import datetime
-from pfu.config import config_class
+from pfu.config import config
 from pfu.db import get_today_expiring_files
 from pfu.jobs import add_expire_job
 from pfu.utils import update_stats
 from pfu.scheduler import scheduler
 
 
-# TODO: Consider using own logs instead of apscheduler logs
-# logger = logging.getLogger(__name__)
-
-
-@scheduler.task('interval', hours=config_class.UPDATE_STATS_INTERVAL, name='Update stats')
+@scheduler.task('interval', hours=config.UPDATE_STATS_INTERVAL, name='Update stats')
 def update_stats_task():
     with scheduler.app.app_context():
         update_stats()

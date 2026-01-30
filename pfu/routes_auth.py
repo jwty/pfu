@@ -3,7 +3,6 @@ from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash
 from pfu.auth import User, new_session_token
 
-
 auth = Blueprint('auth', __name__)
 
 

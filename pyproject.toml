@@ -1,6 +1,6 @@
 [project]
 name = "pfu"
-version = "2022.0.0"
+version = "1.0.0"
 description = "Python file uploader using Flask"
 readme = "README.md"
 requires-python = ">=3.13"
