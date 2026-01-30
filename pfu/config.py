@@ -7,7 +7,7 @@ DEFAULTS = {
     'SECRET_KEY': 'dev-key-change-me',
     'DATA_DIR': 'data',
     'UPLOAD_DIR': 'uploads',
-    'FILE_URL_PREFIX': 'https://change.me/files/',
+    'FILE_URL_PREFIX': 'http://localhost:8000/files/',
     'CHUNK_SIZE': 65536,
     'FILENAME_LENGTH': 5,
     'UPDATE_STATS_INTERVAL': 1,  # In hours
