@@ -7,7 +7,7 @@ DEFAULTS = {
     'SECRET_KEY': 'dev-key-change-me',
     'DATA_DIR': 'data',
     'UPLOAD_DIR': 'uploads',
-    'FILE_URL_PREFIX': 'http://localhost:8000/files/',
+    'FILE_URL_PREFIX': 'http://localhost:8080/files/',
     'CHUNK_SIZE': 65536,
     'FILENAME_LENGTH': 5,
     'UPDATE_STATS_INTERVAL': 1,  # In hours
@@ -53,16 +53,16 @@ config_dict = load_config()
 config = ConfigClass(config_dict)
 
 # Security warnings for default values
-warnings = []
+security_warnings = []
 if config.SECRET_KEY == DEFAULTS['SECRET_KEY']:
     msg = 'SECRET_KEY is using default value!'
     logger.warning(msg)
-    warnings.append(msg)
+    security_warnings.append(msg)
 if config.ADMIN_USERNAME == DEFAULTS['ADMIN_USERNAME']:
     msg = 'ADMIN_USERNAME is using default value!'
     logger.warning(msg)
-    warnings.append(msg)
+    security_warnings.append(msg)
 if config.ADMIN_PASSWORD == DEFAULTS['ADMIN_PASSWORD']:
     msg = 'ADMIN_PASSWORD is using default value!'
     logger.warning(msg)
-    warnings.append(msg)
+    security_warnings.append(msg)

@@ -37,6 +37,7 @@ Create `data/config.toml` with the output from step 2, and set `FILE_URL_PREFIX`
 
 ```sh
 docker run --user 1000:1000 -p 8080:8080 \
+  -e TZ=Europe/Warsaw \
   -v /path/to/data:/pfu/data \
   -v /path/to/uploads:/pfu/uploads \
   pfu:latest
@@ -59,6 +60,8 @@ services:
   pfu:
     image: pfu:latest
     user: 1000:1000
+    environment:
+      - "TZ=Europe/Warsaw"
     volumes:
       - "./data:/pfu/data"
       - "./uploads:/pfu/uploads"
@@ -83,6 +86,7 @@ services:
     image: pfu:latest
     user: 1000:1000
     environment:
+      - "TZ=Europe/Warsaw"
       - "PFU_FILE_URL_PREFIX=http://upload.example.dev/files/"
     volumes:
       - "./uploads:/pfu/uploads"
@@ -164,7 +168,7 @@ You can use `generate-credentials.py` script to generate new admin credentials, 
 | `SECRET_KEY` | `dev-key-change-me` | Secret key for session management |
 | `ADMIN_USERNAME` | `admin` | Admin account username |
 | `ADMIN_PASSWORD` | `admin:password` hash | Admin account password (hashed) |
-| `FILE_URL_PREFIX` | `http://localhost:8000/files/` | URL prefix for file links |
+| `FILE_URL_PREFIX` | `http://localhost:8080/files/` | URL prefix for file links |
 | `DATA_DIR` | `data` | Directory for database and config |
 | `UPLOAD_DIR` | `uploads` | Directory where uploaded files are stored |
 | `HOSTNAME` | `0.0.0.0` | Server hostname |

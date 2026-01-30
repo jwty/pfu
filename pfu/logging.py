@@ -1,5 +1,6 @@
 import colorlog
 import logging
+import warnings
 
 # A bit of fluff for the startup message
 logging.addLevelName(100, 'WELCOME')
@@ -13,4 +14,13 @@ formatter = colorlog.ColoredFormatter(
 logger = colorlog.getLogger()
 logger.addHandler(logging.StreamHandler())
 logger.handlers[0].setFormatter(formatter)
+
+# Suppress annoyingly verbose timezone warning when running in docker and no timezone is configured
+warnings.filterwarnings('ignore', message='.*timezone configuration.*', module='tzlocal')
+
+# Catch Python warnings and send them to the logging system
+logging.captureWarnings(True)
+warnings_logger = logging.getLogger('py.warnings')
+warnings_logger.addHandler(logger.handlers[0])
+
 logger.log(100, "Logging initialised, starting pfu server")
