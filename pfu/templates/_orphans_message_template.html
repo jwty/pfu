@@ -1,0 +1,16 @@
+{% if orphaned_files %}
+Orphaned files:
+<ul>
+    {% for file in orphaned_files %}
+    <li>{{ file }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+{% if orphaned_db_entries %}
+Orphaned database entries:
+<ul>
+    {% for entry in orphaned_db_entries %}
+    <li>{{ entry }}</li>
+    {% endfor %}
+</ul>
+{% endif %}

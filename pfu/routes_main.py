@@ -1,19 +1,26 @@
 from datetime import datetime
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from markupsafe import Markup
-from os import listdir
-from pfu.db import delete_by_filename, delete_secret, get_file_by_filename, get_files_list, get_files_page, get_secrets, new_secret, update_file
-from pfu.utils import get_stats, save_file, update_stats
-
+from pfu.db import get_file_by_filename, update_file
+from pfu.jobs import add_expire_job
+from pfu.pagination import PaginationHelper
+from pfu.scheduler import scheduler, next_midnight
+from pfu.utils import get_stats, parse_expire_datetime, remove_file, save_file
 
 main = Blueprint('main', __name__)
 
 
 @main.get('/')
 def index():
-    # TODO: Display a message of some kind here
     return render_template('index.html')
+
+
+@main.get('/home')
+@login_required
+def home():
+    stats = get_stats()
+    return render_template('home.html', stats=stats)
 
 
 @main.get('/upload')
@@ -30,100 +37,26 @@ def upload_post():
     description = request.form.get('description')
     expire_date = request.form.get('expire-date')
     expire_time = request.form.get('expire-time') or '00:00'
-    expire_timestamp = None
-    if expire_date:
-        expire_timestamp = datetime.combine(datetime.strptime(expire_date, '%Y-%m-%d'), datetime.strptime(expire_time, '%H:%M').time()).timestamp()
-    status, response = save_file(file, keep_filename, expire_timestamp, description)
-    file_url = f'{request.url_root}{current_app.config['FILE_URL_PREFIX']}{response.get('filename')}'
-    if status == 'success':
-        flash(Markup(f'File uploaded successfully: <a href="{file_url}">{response.get('filename')}</a>'), 'success')
-    elif status == 'file_exists':
-        flash(Markup(f'File already exists: <a href="{file_url}">{response.get('filename')}</a>'), 'warning')
+    expire_timestamp = parse_expire_datetime(expire_date, expire_time)
+    result = save_file(file, keep_filename, expire_timestamp, description)
+    if result.is_success:
+        if expire_timestamp and expire_timestamp <= next_midnight():
+            add_expire_job(result.data.get('filename'), expire_timestamp)
+        flash(Markup(f'File uploaded successfully: <a href="{result.data.get('file_url')}">{result.data.get('filename')}</a>'), 'success')
+    elif result.is_file_exists:
+        flash(Markup(f'File already exists: <a href="{result.data.get('file_url')}">{result.data.get('filename')}</a>'), 'warning')
     else:
-        flash(f'Something went wrong while uploading the file: {response}', 'error')
+        flash(f'Something went wrong while uploading the file: {result.error}', 'error')
     # Redirect instead of returning template to keep the nav item highlighted
     return redirect(url_for('main.upload'))
-
-
-@main.get('/home')
-@login_required
-def home():
-    stats = get_stats()
-    return render_template('home.html', stats=stats)
-
-
-@main.get('/update-stats')
-@login_required
-def update_stats_route():
-    update_stats()
-    return redirect(url_for('main.home'))
-
-
-@main.get('/check-for-orphans')
-@login_required
-def check_for_orphans():
-    files_in_db = set(get_files_list())
-    files_in_dir = set(listdir(current_app.config['UPLOAD_DIR']))
-    orphaned_files = list(files_in_dir - files_in_db)
-    orphaned_db_entries = list(files_in_db - files_in_dir)
-    categories = [('Orphans in directory', orphaned_files), ('Orphans in database', orphaned_db_entries)]
-    messages = []
-    for title, items in categories:
-        if items:
-            list_items = ''.join(f'<li>{item}</li>' for item in items)
-            messages.append(f'{title}: <ul>{list_items}</ul>')
-    if messages:
-        flash(Markup(''.join(messages)), 'warning')
-    else:
-        flash('No orphaned files found', 'success')
-    return redirect(url_for('main.home'))
-
-
-@main.get('/api_secrets')
-@login_required
-def api_secrets():
-    secrets = get_secrets()
-    return render_template('api_secrets.html', secrets=secrets)
-
-
-@main.post('/create_secret')
-@login_required
-def create_secret():
-    name = request.form.get('name')
-    description = request.form.get('description')
-    perm_read = 'perm_read' in request.form
-    perm_write = 'perm_write' in request.form
-    perm_delete = 'perm_delete' in request.form
-    status, response = new_secret(name, description, perm_read, perm_write, perm_delete)
-    if status == 'success':
-        flash(Markup(f'Secret created successfully: <code>{response}</code>'), 'success')
-    else:
-        flash(f'Something went wrong: {response}', 'error')
-    return redirect(url_for('main.settings'))
-
-
-@main.get('/delete_secret/<secret_id>')
-@login_required
-def delete_secret_get(secret_id):
-    status, response = delete_secret(secret_id)
-    flash(response, status)
-    return redirect(url_for('main.settings'))
 
 
 @main.get('/files')
 @login_required
 def files():
-    page_number = int(request.args.get('page', 1, int))
-    if page_number < 1:
-        page_number = 1
-    sort_by = request.args.get('sort', 'date')
-    files_per_page = request.args.get('c', 10, int)
-    search_query = request.args.get('q')
-    files, current_page, possible_pages = get_files_page(files_per_page, page_number, sort_by, query=search_query)
-    # Re-fetch if page number is out of bounds (for example, on file deletion)
-    if page_number > possible_pages and possible_pages > 0:
-        files, current_page, possible_pages = get_files_page(files_per_page, possible_pages, sort_by, query=search_query)
-    return render_template('files.html', files=files, current_page=current_page, possible_pages=possible_pages, sort_by=sort_by, search_query=search_query)
+    page = PaginationHelper.from_request(request)
+    files, current_page, total_pages = page.get_files()
+    return render_template('files.html', files=files, current_page=current_page, possible_pages=total_pages, sort_by=page.sort_by, search_query=page.query)
 
 
 @main.get('/search')
@@ -161,10 +94,11 @@ def delete_files_post(filename_list):
     filename_list = filename_list.split(',')
     errors = []
     for filename in filename_list:
-        try:
-            delete_by_filename(filename)
-        except Exception as e:
-            errors.append(f'Error for file {filename}: {e}')
+        if scheduler.get_job(filename):
+            scheduler.remove_job(filename)
+        result = remove_file(filename)
+        if result.is_error:
+            errors.append(result.error)
     if errors:
         flash('Something went wrong while deleting files', 'warning')
         for error in errors:
@@ -194,13 +128,16 @@ def edit_file_post(filename):
     description = request.form.get('description')
     expire_date = request.form.get('expire-date')
     expire_time = request.form.get('expire-time') or '00:00'
-    expire_timestamp = None
-    if expire_date:
-        expire_timestamp = datetime.combine(datetime.strptime(expire_date, '%Y-%m-%d'), datetime.strptime(expire_time, '%H:%M').time()).timestamp()
-    try:
-        update_file(filename, description, expire_timestamp)
-        flash('File updated successfully', 'success')
-    except Exception as e:
-        flash(f'Error updating file {filename}: {e}', 'error')
+    expire_timestamp = parse_expire_datetime(expire_date, expire_time)
+    result = update_file(filename, description, expire_timestamp)
+    if result.is_error:
+        flash(result.error, 'error')
+        return redirect(url_for('main.files'))
+    has_expire_job = scheduler.get_job(filename)
+    if expire_timestamp and expire_timestamp <= next_midnight() and not has_expire_job:
+        add_expire_job(filename, expire_timestamp)
+    if expire_timestamp is None and has_expire_job:
+        scheduler.remove_job(filename)
+    flash('File updated successfully', 'success')
     next_view = request.args.get('next')
     return redirect(next_view or url_for('main.files'))

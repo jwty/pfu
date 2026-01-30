@@ -3,16 +3,15 @@ import json
 from datetime import datetime
 from hashlib import md5
 from secrets import token_urlsafe
-from flask import current_app, request
 from werkzeug.utils import secure_filename
-from pfu.db import add_file_to_db, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size
-from pfu.scheduler import next_midnight
-from pfu.jobs import add_expire_job
+from pfu.db import add_file_to_db, delete_file_record, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size
+from pfu.config import config
+from pfu.responses import Result
 
 
 def calc_md5(file_up):
     md5_obj = md5()
-    chunk_size = current_app.config['CHUNK_SIZE']
+    chunk_size = config.CHUNK_SIZE
     file_buffer = file_up.read(chunk_size)
     while file_buffer:
         md5_obj.update(file_buffer)
@@ -28,51 +27,58 @@ def format_datetime(timestamp):
     return dt.strftime('%Y-%m-%d %H:%M:%S %Z')
 
 
-def prepare_file_details(current_app, request, file_data):
-    base_url = request.url_root
-    file_prefix = current_app.config['FILE_URL_PREFIX']
-    file_url = f'{base_url}{file_prefix}{file_data['filename']}'
-    file_details_dict = {
-        'filename': file_data['filename'],
-        'original_filename': file_data['original_filename'],
-        'size': file_data['size'],
-        'description': file_data['description'],
-        'file_url': file_url,
-        'checksum': file_data['checksum'],
-        'upload_date': file_data['upload_date'],
-        'expire_date': file_data['expire_date']
-    }
-    return file_details_dict
+def parse_expire_datetime(expire_date, expire_time='00:00'):
+    if not expire_date:
+        return None
+    return datetime.combine(datetime.strptime(expire_date, '%Y-%m-%d'), datetime.strptime(expire_time, '%H:%M').time()).timestamp()
+
+
+def file_details_with_url(file_data):
+    return {**file_data, 'file_url': f'{config.FILE_URL_PREFIX}{file_data['filename']}'}
 
 
 def save_file(file, keep_filename=False, expire_timestamp=None, description=None):
     md5_sum = calc_md5(file)
-    # Simple duplicate avoidance - if the file already exists, do not duplicate and instead return it
+    # Simple duplicate avoidance if the file already exists, do not duplicate and instead return it
     if existing_file := get_file_by_checksum(md5_sum):
-        return 'file_exists', prepare_file_details(current_app, request, existing_file)
+        return Result.file_exists(data=existing_file)
     filename = secure_filename(file.filename)
     filename_root, filename_ext = os.path.splitext(filename)
-    new_filename_root = token_urlsafe(current_app.config['FILENAME_LENGTH'])
+    new_filename_root = token_urlsafe(config.FILENAME_LENGTH)
     if keep_filename:
         # Amend original filename to random token to avoid conflicts when uploading different files with same filenames
         new_filename = f'{filename_root}-{new_filename_root}{filename_ext}'
     else:
         new_filename = f'{new_filename_root}{filename_ext}'
-    file_path = os.path.join(current_app.config['UPLOAD_DIR'], new_filename)
+    file_path = os.path.join(config.UPLOAD_DIR, new_filename)
     try:
         file.save(file_path)
-    except Exception as e:
-        return 'error', str(e)
+    except (IOError, OSError, PermissionError) as e:
+        return Result.error(f'Failed to save file {new_filename}: {str(e)}')
     file_size = os.stat(file_path).st_size
     add_file_to_db(new_filename, file.filename, description, md5_sum, int(datetime.now().timestamp()), expire_timestamp, file_size)
-    if expire_timestamp and expire_timestamp <= next_midnight():
-        add_expire_job(new_filename, expire_timestamp)
     file_data = get_file_by_filename(new_filename)
-    return 'success', prepare_file_details(current_app, request, file_data)
+    return Result.success(file_details_with_url(file_data))
+
+
+def remove_file(filename):
+    file_path = os.path.join(config.UPLOAD_DIR, filename)
+    try:
+        os.remove(file_path)
+    except FileNotFoundError:
+        pass  # File already deleted, that's fine
+    except (IOError, OSError, PermissionError) as e:
+        return Result.error(f'Failed to remove file {filename}: {str(e)}')
+    try:
+        delete_file_record(filename)
+    except Exception as e:
+        # Generic since it should only catch database errors
+        return Result.error(f'Failed to delete database record for file {filename}: {str(e)}')
+    return Result.success()
 
 
 def get_stats():
-    stats_file = os.path.join(current_app.config['DATA_DIR'], 'stats.json')
+    stats_file = os.path.join(config.DATA_DIR, 'stats.json')
     with open(stats_file, 'r') as f:
         stats = json.load(f)
     stats['last_updated'] = datetime.fromtimestamp(stats['last_updated']).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
@@ -80,7 +86,7 @@ def get_stats():
 
 
 def update_stats():
-    stats_file = os.path.join(current_app.config['DATA_DIR'], 'stats.json')
+    stats_file = os.path.join(config.DATA_DIR, 'stats.json')
     stats = {
         'files_count': get_files_count(),
         'files_expiring_count': get_files_expiring_count(),

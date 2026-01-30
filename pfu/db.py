@@ -1,14 +1,16 @@
 import os
-from peewee import *
+from peewee import fn, SqliteDatabase, Model, TextField, IntegerField, BooleanField, DoesNotExist, IntegrityError
 from playhouse.flask_utils import PaginatedQuery
 from playhouse.shortcuts import model_to_dict
 from secrets import token_hex
 from werkzeug.security import generate_password_hash
 from pfu.config import config
-from pfu.scheduler import scheduler, next_midnight
+from pfu.responses import Result
+from pfu.scheduler import next_midnight
 
-database_path = os.path.join(config['DATA_DIR'], 'database.db')
-database = SqliteDatabase(database_path, pragmas={'foreign_keys': 1})
+database_path = os.path.join(config.DATA_DIR, 'database.db')
+database = SqliteDatabase(database_path)
+
 
 def initialize_db():
     database.connect()
@@ -19,6 +21,7 @@ def initialize_db():
 
 def configure_db(app):
     database = initialize_db()
+
     @app.teardown_request
     def teardown_request(exception):
         if not database.is_closed():
@@ -53,16 +56,11 @@ class Secrets(BaseModel):
     hash = TextField()
 
 
-
 def add_file_to_db(filename, original_filename, description, checksum, upload_date, expire_date, size):
     Files.create(filename=filename, original_filename=original_filename, description=description, checksum=checksum, upload_date=upload_date, expire_date=expire_date, size=size)
 
 
-def delete_by_filename(filename):
-    try:
-        os.remove(os.path.join(config['UPLOAD_DIR'], filename))
-    except FileNotFoundError:
-        pass
+def delete_file_record(filename):
     Files.delete().where(Files.filename == filename).execute()
 
 
@@ -83,15 +81,17 @@ def get_file_by_filename(filename):
 
 
 def update_file(filename, description, expire_date=None):
-    file = Files.get(Files.filename == filename)
-    file.description = description
-    file.expire_date = expire_date
-    file.save()
-    has_expire_job = scheduler.get_job(filename)
-    if expire_date and expire_date <= next_midnight() and not has_expire_job:
-        add_expire_job(filename, expire_date)
-    if expire_date == None and has_expire_job:
-        scheduler.remove_job(filename)
+    try:
+        file = Files.get(Files.filename == filename)
+        file.description = description
+        file.expire_date = expire_date
+        file.save()
+    except DoesNotExist:
+        return Result.error(f'File {filename} not found')
+    except Exception as e:
+        # Generic since it should only catch database errors
+        return Result.error(f'Failed to update file {filename}: {str(e)}')
+    return Result.success()
 
 
 def get_files_count():
@@ -142,12 +142,12 @@ def new_secret(name, description, perm_read, perm_write, perm_delete):
     secret_prefix = token_hex(4)
     secret_token = token_hex(16)
     secret_key = f'{secret_prefix}-{secret_token}'
-    hash = generate_password_hash(secret_token)
+    secret_hash = generate_password_hash(secret_token)
     try:
-        Secrets.create(name=name, description=description, perm_read=perm_read, perm_write=perm_write, perm_delete=perm_delete, prefix=secret_prefix, hash=hash)
+        Secrets.create(name=name, description=description, perm_read=perm_read, perm_write=perm_write, perm_delete=perm_delete, prefix=secret_prefix, hash=secret_hash)
     except IntegrityError:
-        return 'error', f'Secret "{name}" already exists'
-    return 'success', secret_key
+        return Result.error(f'Secret "{name}" already exists')
+    return Result.success(data=secret_key)
 
 
 def delete_secret(secret_id):
@@ -155,8 +155,8 @@ def delete_secret(secret_id):
         secret = Secrets.get(Secrets.id == secret_id)
         secret.delete_instance()
     except DoesNotExist:
-        return 'error', 'Secret not found'
-    return 'success', 'Secret deleted successfully'
+        return Result.error('Secret not found')
+    return Result.success()
 
 
 def get_today_expiring_files():

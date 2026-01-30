@@ -2,8 +2,9 @@ from flask import Flask
 from flask_bootstrap import Bootstrap5
 from pfu.logging import logger
 from pfu.auth import login_manager
-from pfu.config import config_class
+from pfu.config import config
 from pfu.db import configure_db
+from pfu.routes_admin import admin
 from pfu.routes_api import api
 from pfu.routes_auth import auth
 from pfu.routes_main import main
@@ -13,8 +14,8 @@ from pfu.utils import format_datetime
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(config_class)
-    logger.setLevel(config_class.LOG_LEVEL)
+    app.config.from_object(config)
+    logger.setLevel(config.LOG_LEVEL)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     app.jinja_env.filters['datetime'] = format_datetime
@@ -25,8 +26,9 @@ def create_app():
     app.register_blueprint(main)
     app.register_blueprint(auth)
     app.register_blueprint(api)
+    app.register_blueprint(admin)
     configure_db(app)
     scheduler.init_app(app)
     scheduler.start()
-    import pfu.tasks
+    import pfu.tasks  # Importing here to register tasks via decorators
     return app
