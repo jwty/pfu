@@ -1,71 +1,300 @@
-# pfu file uploader
-Python file uploader using Flask. Readme currently outdated and in process of being rewritten.
+# pfu - personal file uploader
+Simple, single-user file uploader with basic file management features I made for personal use. Probably not the most efficient or secure solution out there but it works for me.
 
-## Requirements
-`flask` and `werkzeug`
+## Table of contents
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Web interface](#web-interface)
+- [API](#api)
+- [Job scheduler](#job-scheduler)
+- [Future plans](#future-plans)
 
-## Installation & usage
-### Setup
-Clone and run `setup.py` to set up a sqlite3 database, config file and uploads directory (make sure script has write permissions).
+## Installation
+You can use either docker (or equivalent) or container-less setup. Nowadays I run it in a docker container so that's the most tested setup, but it should work either way.
 
-Run `server.py` for [developement server](http://flask.pocoo.org/docs/1.0/server/) or use [one of deployement options](http://flask.pocoo.org/docs/0.12/deploying/#deployment),
-for example `gunicorn`:
+> [!IMPORTANT]
+> Note that pfu **does not** serve files by itself. You need to use another tool for that, for example [Static Web Server](https://github.com/static-web-server/static-web-server/) (which I use).
+
+> [!WARNING]
+> In both cases, make sure to provide `SECRET_KEY`, `ADMIN_USERNAME` and `ADMIN_PASSWORD` before running, otherwise you'll be using unsafe default values.
+
+### Docker
+1. **Generate credentials:**
+
+```sh
+docker run --rm -it pfu:latest python generate-credentials.py
 ```
-$ gunicorn --bind 0.0.0.0:8000 server:app
+Answer `y` when asked about SECRET_KEY.
+
+2. **Create config:**
+
+Create `data/config.toml` with the output from step 2, and set `FILE_URL_PREFIX` to match your setup.
+
+3. **Run:**
+
+> [!NOTE]
+> Make sure to run as user which has read and write access to the data and uploads directories.
+
+```sh
+docker run --user 1000:1000 -p 8080:8080 \
+  -v /path/to/data:/pfu/data \
+  -v /path/to/uploads:/pfu/uploads \
+  pfu:latest
 ```
 
-### Form fields
-* `file_up` - file to upload
-* `secret` (string) - secret key (as set in by `setup.py`)
-* `expire` (bool) - to set file expiry date (as for now does nothing but useful nonetheless)
-* `expire_date` (string) - file expiry date in YYYY-MM-DD format (cause html)
-* `expire_time` (string) - file expiry time in HH:MM time (cause html)
-* `keep` (bool) - whether to keep original file name or not (original file name is kept as first segment of newly generated file name, for example `test-wgownpqy.jpg`)
+4. **Serve files:**
 
-### Usage
-Use a web interface (`localhost:5000` if using dev server) or send POST request manually:
-```
-$ curl -X POST http://localhost:5000/upload -F 'file_up=@example.txt' -F 'secret=secret'
-```
-Or for JSON response:
-```
-$ curl -X POST http://localhost:5000/upload?json -F 'file_up=@example.txt' -F 'secret=secret'
+Point a web server at the uploads directory.
 
+### Example docker-compose.yml
+
+> [!WARNING]
+> When setting admin password as environment variable in docker-compose.yml, make sure to escape dollar signs in password hash by doubling them (generate-credentials.py does this for you).
+
+<details>
+<summary>Example docker-compose.yml</summary>
+
+```yaml
+services:
+  pfu:
+    image: pfu:latest
+    user: 1000:1000
+    volumes:
+      - "./data:/pfu/data"
+      - "./uploads:/pfu/uploads"
+    ports:
+      - "8080:8080"
+  sws:
+    image: joseluisq/static-web-server:2
+    user: 1000:1000
+    volumes:
+      - "./uploads:/public"
+    ports:
+      - "8000:80"
+```
+</details>
+
+<details>
+<summary>Example docker-compose.yml based on my setup (proxying with Traefik and serving files from subdirectory)</summary>
+
+```yaml
+services:
+  pfu:
+    image: pfu:latest
+    user: 1000:1000
+    environment:
+      - "PFU_FILE_URL_PREFIX=http://upload.example.dev/files/"
+    volumes:
+      - "./uploads:/pfu/uploads"
+      - "./data:/pfu/data"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pfu.rule=Host(`upload.example.dev`)"using
+      - "traefik.http.routers.pfu.entrypoints=websecure"
+      - "traefik.http.routers.pfu.tls.certresolver=letsencrypt"
+  sws:
+    image: joseluisq/static-web-server:2
+    user: 1000:1000
+    volumes:
+      - "./uploads:/public"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sws.rule=(Host(`upload.example.dev`) && PathPrefix(`/files/`))"
+      - "traefik.http.middlewares.sws-stripprefix.stripprefix.prefixes=/files"
+      - "traefik.http.routers.sws.middlewares=sws-stripprefix"
+      - "traefik.http.routers.sws.entrypoints=websecure"
+      - "traefik.http.routers.sws.tls.certresolver=letsencrypt"
+
+networks:
+  proxy:
+    external: true
+```
+</details>
+
+### Container-less
+
+1. **Install dependencies:**
+
+Using [uv](https://github.com/astral-sh/uv) (recommended):
+
+```sh
+uv sync
+```
+
+> [!NOTE]
+> If you don't want to use uv, `requirements.txt` is provided for pip.
+
+2. **Generate credentials:**
+
+```sh
+uv run generate-credentials.py
+```
+
+Answer `y` when asked about SECRET_KEY.
+
+3. **Create config:**
+
+Create `data/config.toml` with the output from step 2, and set `FILE_URL_PREFIX` to match your setup.
+
+4. **Run:**
+
+```sh
+uv run run.py
+```
+
+5. **Serve files:**
+
+Point a web server at the uploads directory.
+
+## Configuration
+You can set these either in `config.toml` or as environment variables. Environment variables have higher priority than config file. For normal docker (or equivalent) setup, you shouldn't have to change `DATA_DIR`, `UPLOAD_DIR`, `HOSTNAME`, `PORT`.
+
+You can use `generate-credentials.py` script to generate new admin credentials, just select `n` when asked about SECRET_KEY.
+
+> [!IMPORTANT]
+> When providing config values via environment variables, make sure to prepend `PFU_` to the config key (e.g. `PFU_SECRET_KEY`).
+
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SECRET_KEY` | `dev-key-change-me` | Secret key for session management |
+| `ADMIN_USERNAME` | `admin` | Admin account username |
+| `ADMIN_PASSWORD` | `admin:password` hash | Admin account password (hashed) |
+| `FILE_URL_PREFIX` | `http://localhost:8000/files/` | URL prefix for file links |
+| `DATA_DIR` | `data` | Directory for database and config |
+| `UPLOAD_DIR` | `uploads` | Directory where uploaded files are stored |
+| `HOSTNAME` | `0.0.0.0` | Server hostname |
+| `PORT` | `8080` | Server port |
+| `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `CHUNK_SIZE` | `65536` | File chunk size for MD5 calculation (bytes) |
+| `FILENAME_LENGTH` | `5` | Length of random filename component |
+| `UPDATE_STATS_INTERVAL` | `1` | Stats update interval (hours) |
+
+## Web interface
+(WIP)
+
+## API
+API is rather rudimentary but gets the job done. All API endpoints require authentication via API secrets. Create secrets in the web interface under **API Secrets**.
+
+### Authentication
+Include the secret in the `X-Auth-Secret` header.
+
+Each secret has three permissions:
+- **Read** - View file details
+- **Write** - Upload files
+- **Delete** - Delete files
+
+### Error responses
+- **401 Unauthorized** for missing or invalid API secret
+- **403 Forbidden** for missing permissions
+- **404 Not Found** for removed files or files without associated database entry (orphans)
+- **500 Internal Server Error** for caught exceptions, with the error message in response body
+
+### Endpoints
+#### `GET /api/file/<filename>`
+Get file details (requires **read** permission).
+
+**Response:**
+```json
 {
-  "data": {
-    "file": "test.jpg", 
-    "url": "http://127.0.0.1:5000/TUMFEhE.jpg"
-  }, 
-  "status": "success"
+    "data": {
+        "checksum": "70388338c080ae85d117242f4f199509",
+        "description": "Cheese :)",
+        "expire_date": null,
+        "file_url": "http://localhost:8080/files/xO0LiUA.jpg",
+        "filename": "xO0LiUA.jpg",
+        "id": 69,
+        "original_filename": "cheese.jpg",
+        "size": 30381,
+        "upload_date": 1769117822
+    },
+    "status": "success"
 }
 ```
 
-Using `requests` library:
-```
-import requests
-url = "http://127.0.0.1:5000/upload?json"
+#### `DELETE /api/file/<filename>`
+Delete a file (requires **delete** permission).
 
-data = {
-        'secret' : 'secret',
-        'expire' : True,
-        'expire_date' : '2019-10-10',
-        'expire_time' : '16:20',
-        'keep' : True,
-}
-files = { 'file_up' : open('test.jpg', 'rb') }
-
-r = requests.post(url, data=data, files=files)
-```
-### Deleting a file
-Delete file through web interface (`localhost:5000/delete/filename.txt`), or send POST request. In both cases you need to provide the secret key.
-```
-curl -X POST "http://localhost:5000/delete/3HzK8ic.jpg?json" -F "secret=secret"
-
+**Response:**
+```json
 {
-  "data": {
-    "message": "file deleted"
-  }, 
-  "status": "success"
+    "message": "File deleted",
+    "status": "success"
 }
 ```
-Script validates if file is allowed to be deleted by checking against database (instead for example checking if file exists in `uploads/`) to make sure only valid files are deleted.
+
+#### `POST /api/upload`
+Upload a file (requires **write** permission).
+
+> [!NOTE]
+> If the file you are trying to upload already exists (checked by comparing md5 sums), it will not be uploaded again. The response will contain the file details of the existing file, with status `file_exists`.
+
+**Form data:**
+- `file` (required) - File to upload
+- `keep_filename` (optional) - Keep original filename as prefix
+- `expire` (optional) - Unix timestamp for expiration
+- `description` (optional) - File description
+
+**Example:**
+```sh
+curl -X POST http://localhost:8080/api/upload \
+  -H "X-Auth-Secret: abc123-def456..." \
+  -F "file=@cheese.jpg" \
+  -F "expire=1769810272" \
+  -F "keep_filename=yes" \
+  -F "description=Cheese :)"
+```
+
+**Response:**
+```json
+{
+    "data": {
+        "checksum": "70388338c080ae85d117242f4f199509",
+        "description": "Cheese :)",
+        "expire_date": 1769810272,
+        "file_url": "http://localhost:8080/files/cheese-JpWTrDE.jpg",
+        "filename": "cheese-JpWTrDE.jpg",
+        "id": 420,
+        "original_filename": "cheese.jpg",
+        "size": 30381,
+        "upload_date": 1769117822
+    },
+    "status": "success" // Or "file_exists" for duplicates
+}
+
+```
+
+## Job scheduler
+
+pfu uses APScheduler to run automated tasks in the background:
+
+1. **Stats update**
+   - Runs every `UPDATE_STATS_INTERVAL` hours (default: 1 hour)
+   - Updates cached statistics (file count, expiring files count, total size)
+
+2. **Prepare expire tasks**
+   - Runs daily at 00:05 and at startup
+   - Queries database for files expiring today or in past, to catch up if server was down
+   - Schedules individual deletion jobs for each expiring file
+
+3. **File expiration jobs**
+   - Created by daily prepare expire task
+   - Created when files with expiration dates set to today are uploaded
+   - Created and removed as necessary when editing files' expiration dates
+   - Automatically deletes files at their specified expiration time
+
+> [!NOTE]
+> The 5-minute offset for the daily task prevents picking up files that are currently being deleted by expire jobs set to run at midnight, avoiding unnecessary warning logs. This means that files set to expire between 00:00 and 00:05 will be deleted at most 5 minutes late. This could probably be safely changed to a far lower value.
+
+## Future plans
+In no particular order:
+- Move forms to WTForms
+- Log storage and rotation
+- Humanize expire and upload dates (for example, "2 days ago" instead of "2026-01-31 12:00:00")
+- Add more search/filtering functionality
+- Add type hints
+- Whatever else comes to mind
