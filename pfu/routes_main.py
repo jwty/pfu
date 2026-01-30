@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 from markupsafe import Markup
 from pfu.db import get_file_by_filename, update_file
 from pfu.jobs import add_expire_job
@@ -13,6 +13,8 @@ main = Blueprint('main', __name__)
 
 @main.get('/')
 def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.home'))
     return render_template('index.html')
 
 
