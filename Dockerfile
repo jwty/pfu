@@ -1,4 +1,5 @@
 FROM python:alpine
+LABEL org.opencontainers.image.source=https://github.com/jwty/pfu
 EXPOSE 8080
 WORKDIR /pfu
 COPY requirements.txt ./

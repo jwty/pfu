@@ -22,7 +22,7 @@ You can use either docker (or equivalent) or container-less setup. Nowadays I ru
 1. **Generate credentials:**
 
 ```sh
-docker run --rm -it pfu:latest python generate-credentials.py
+docker run --rm -it ghcr.io/jwty/pfu:latest python generate-credentials.py
 ```
 Answer `y` when asked about SECRET_KEY.
 
@@ -40,7 +40,7 @@ docker run --user 1000:1000 -p 8080:8080 \
   -e TZ=Europe/Warsaw \
   -v /path/to/data:/pfu/data \
   -v /path/to/uploads:/pfu/uploads \
-  pfu:latest
+  ghcr.io/jwty/pfu:latest
 ```
 
 4. **Serve files:**
@@ -58,7 +58,7 @@ Point a web server at the uploads directory.
 ```yaml
 services:
   pfu:
-    image: pfu:latest
+    image: ghcr.io/jwty/pfu:latest
     user: 1000:1000
     environment:
       - "TZ=Europe/Warsaw"
@@ -83,7 +83,7 @@ services:
 ```yaml
 services:
   pfu:
-    image: pfu:latest
+    image: ghcr.io/jwty/pfu:latest
     user: 1000:1000
     environment:
       - "TZ=Europe/Warsaw"
@@ -167,7 +167,7 @@ You can use `generate-credentials.py` script to generate new admin credentials, 
 |----------|---------|-------------|
 | `SECRET_KEY` | `dev-key-change-me` | Secret key for session management |
 | `ADMIN_USERNAME` | `admin` | Admin account username |
-| `ADMIN_PASSWORD` | `admin:password` hash | Admin account password (hashed) |
+| `ADMIN_PASSWORD` | `password` (hashed) | Admin account password (hashed) |
 | `FILE_URL_PREFIX` | `http://localhost:8080/files/` | URL prefix for file links |
 | `DATA_DIR` | `data` | Directory for database and config |
 | `UPLOAD_DIR` | `uploads` | Directory where uploaded files are stored |
@@ -216,7 +216,7 @@ API secrets management view. Allows you to create and delete API secrets. API se
 [![API secrets management](screenshots/secrets.png)](screenshots/secrets.png)
 
 ## API
-API is rather rudimentary but gets the job done. All API endpoints require authentication via API secrets. Create secrets in the web interface under **API Secrets**.
+API is rather rudimentary but gets the job done. All API endpoints require authentication via API secrets. Create secrets in the web interface under [API secrets](#api-secrets-management).
 
 ### Authentication
 Include the secret in the `X-Auth-Secret` header.
