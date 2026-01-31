@@ -179,7 +179,41 @@ You can use `generate-credentials.py` script to generate new admin credentials, 
 | `UPDATE_STATS_INTERVAL` | `1` | Stats update interval (hours) |
 
 ## Web interface
-(WIP)
+### Home page
+Default view after login. Shows stats and actions.
+- **Update statistics** - Updates stats seen on this page.
+- **Check for orphans** - Checks for files in upload directory that are not in database, and files that are in database but not in upload directory.
+- **Logout all sessions** - Self-explanatory. This is done by generating a new session token which invalidates session cookies (see [auth.py](pfu/auth.py)).
+
+[![Home page](screenshots/home.png)](screenshots/home.png)
+
+### Upload page
+Upload files here. 
+- **Keep original filename?** - If checked, the original filename gets formatted to be filesystem-safe and prepended to the random filename component to avoid name collisions. It is still stored in its original form in the database.
+- **Expiration date and time** - If set, the file will be automatically deleted at the specified date and time (see [Job scheduler](#job-scheduler)). When time is not set, it defaults to midnight.
+- **Description** - Optional description of the file, supports multi-line input.
+
+[![Upload page](screenshots/upload.png)](screenshots/upload.png)
+
+### Files page
+Shows all files or search query results. Self-explanatory. You can click on file to display file details (seen below the table).
+
+[![Files page](screenshots/files.png)](screenshots/files.png)
+
+### Edit file view
+Clicking on edit icon in the files table opens this view. You can edit the file's description and expiration date and time (see [Job scheduler](#job-scheduler)).
+
+[![Edit file](screenshots/edit.png)](screenshots/edit.png)
+
+### Delete confirmation
+All delete actions in web interface open this view. Self-explanatory.
+
+[![Delete confirmation](screenshots/delete_confirmation.png)](screenshots/delete_confirmation.png)
+
+### API secrets management
+API secrets management view. Allows you to create and delete API secrets. API secret name gets logged for reference, secret itself is only shown once upon creation. See [API](#api) for more information.
+
+[![API secrets management](screenshots/secrets.png)](screenshots/secrets.png)
 
 ## API
 API is rather rudimentary but gets the job done. All API endpoints require authentication via API secrets. Create secrets in the web interface under **API Secrets**.
@@ -296,6 +330,7 @@ pfu uses APScheduler to run automated tasks in the background:
 
 ## Future plans
 In no particular order:
+- Automated testing... *sigh*
 - Move forms to WTForms
 - Log storage and rotation
 - Humanize expire and upload dates (for example, "2 days ago" instead of "2026-01-31 12:00:00")
