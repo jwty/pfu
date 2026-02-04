@@ -87,6 +87,9 @@ def remove_file(filename):
 
 def get_stats():
     stats_file = os.path.join(config.DATA_DIR, 'stats.json')
+    # Create stats file if it doesn't exist
+    if not os.path.exists(stats_file):
+        update_stats()
     with open(stats_file, 'r') as f:
         stats = json.load(f)
     stats['last_updated'] = datetime.fromtimestamp(stats['last_updated']).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
