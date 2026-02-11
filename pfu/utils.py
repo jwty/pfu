@@ -37,14 +37,14 @@ def parse_expire_datetime(expire_date, expire_time='00:00'):
 
 
 def file_details_with_url(file_data):
-    return {**file_data, 'file_url': f'{config.FILE_URL_PREFIX}{file_data['filename']}'}
+    return {**file_data, 'file_url': f"{config.FILE_URL_PREFIX}{file_data['filename']}"}
 
 
 def save_file(file, keep_filename=False, expire_timestamp=None, description=None):
     md5_sum = calc_md5(file)
     # Simple duplicate avoidance if the file already exists, do not duplicate and instead return it
     if existing_file := get_file_by_checksum(md5_sum):
-        return Result.file_exists(data=existing_file)
+        return Result.file_exists(data=file_details_with_url(existing_file))
     filename = secure_filename(file.filename)
     filename_root, filename_ext = os.path.splitext(filename)
     new_filename_root = token_urlsafe(config.FILENAME_LENGTH)
