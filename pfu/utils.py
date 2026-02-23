@@ -5,7 +5,7 @@ from datetime import datetime
 from hashlib import md5
 from secrets import token_urlsafe
 from werkzeug.utils import secure_filename
-from pfu.db import add_file_to_db, delete_file_record, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size
+from pfu.db import add_file_to_db, delete_file_record, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size, update_file_checksum_and_size
 from pfu.config import config
 from pfu.responses import Result
 
@@ -64,6 +64,23 @@ def save_file(file, keep_filename=False, expire_timestamp=None, description=None
     file_data = get_file_by_filename(new_filename)
     logger.info(f'File saved: {new_filename} ({file_size} bytes)')
     return Result.success(file_details_with_url(file_data))
+
+
+def recalculate_file(filename):
+    file_path = os.path.join(config.UPLOAD_DIR, filename)
+    try:
+        file_size = os.stat(file_path).st_size
+        with open(file_path, 'rb') as f:
+            md5_sum = calc_md5(f)
+    except FileNotFoundError:
+        return Result.error(f'File {filename} not found on disk')
+    except (IOError, OSError, PermissionError) as e:
+        logger.error(f'Failed to read file {filename}: {str(e)}')
+        return Result.error(f'Failed to read file {filename}: {str(e)}')
+    result = update_file_checksum_and_size(filename, md5_sum, file_size)
+    if result.is_success:
+        logger.info(f'File recalculated: {filename} ({file_size} bytes, {md5_sum})')
+    return result
 
 
 def remove_file(filename):

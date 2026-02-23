@@ -6,7 +6,7 @@ from pfu.db import get_file_by_filename, get_secret
 from pfu.responses import Status
 from pfu.jobs import add_expire_job
 from pfu.scheduler import scheduler, next_midnight
-from pfu.utils import file_details_with_url, remove_file, save_file
+from pfu.utils import file_details_with_url, recalculate_file, remove_file, save_file
 
 api = Blueprint('api', __name__, url_prefix='/api')
 logger = logging.getLogger(__name__)
@@ -84,3 +84,16 @@ def upload():
     if result.is_error:
         return {'status': result.status.value, 'message': result.error}, 500
     return {'status': result.status.value, 'data': result.data}
+
+
+@api.post('/recalculate/<filename>')
+@permission_required('write')
+def recalculate(filename):
+    if not get_file_by_filename(filename):
+        return {'status': Status.ERROR.value, 'message': 'Not found'}, 404
+    result = recalculate_file(filename)
+    if result.is_error:
+        return {'status': result.status.value, 'message': result.error}, 500
+    file = get_file_by_filename(filename)
+    file_details = file_details_with_url(file)
+    return {'status': result.status.value, 'data': file_details}

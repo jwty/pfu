@@ -6,7 +6,7 @@ from pfu.db import get_file_by_filename, update_file
 from pfu.jobs import add_expire_job
 from pfu.pagination import PaginationHelper
 from pfu.scheduler import scheduler, next_midnight
-from pfu.utils import get_stats, parse_expire_datetime, remove_file, save_file
+from pfu.utils import get_stats, parse_expire_datetime, recalculate_file, remove_file, save_file
 
 main = Blueprint('main', __name__)
 
@@ -143,3 +143,14 @@ def edit_file_post(filename):
     flash('File updated successfully', 'success')
     next_view = request.args.get('next')
     return redirect(next_view or url_for('main.files'))
+
+
+@main.post('/recalculate/<filename>')
+@login_required
+def recalculate_file_post(filename):
+    result = recalculate_file(filename)
+    if result.is_error:
+        flash(result.error, 'error')
+    else:
+        flash(f'File checksum and size recalculated successfully', 'success')
+    return redirect(url_for('main.edit_file', filename=filename))

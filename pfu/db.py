@@ -94,6 +94,21 @@ def update_file(filename, description, expire_date=None):
     return Result.success()
 
 
+def update_file_checksum_and_size(filename, new_checksum, new_size):
+    try:
+        file = Files.get(Files.filename == filename)
+        file.checksum = new_checksum
+        file.size = new_size
+        file.save()
+    except DoesNotExist:
+        return Result.error(f'File {filename} not found')
+    except IntegrityError:
+        return Result.error(f'Checksum {new_checksum} already exists in database')
+    except Exception as e:
+        return Result.error(f'Failed to update checksum for file {filename}: {str(e)}')
+    return Result.success()
+
+
 def get_files_count():
     return Files.select().count()
 
