@@ -1,0 +1,23 @@
+<div class="row g-3 align-items-end">
+    <div class="col-md-2">
+        <label for="expire-date" class="form-label">Expiration date</label>
+        <input type="date" class="form-control" id="expire-date" name="expire-date" {% if expire_date %}value="{{ expire_date }}"{% endif %}>
+    </div>
+    <div class="col-md-2">
+        <label for="expire-time" class="form-label">Expiration time</label>
+        <input type="time" class="form-control" id="expire-time" name="expire-time" {% if expire_time %}value="{{ expire_time }}"{% endif %}>
+    </div>
+    <div class="col-md-2">
+        <button type="button" class="btn btn-outline-primary w-100" id="clear-expire">Clear expiration date</button>
+    </div>
+</div>
+<div class="row mb-3 mt-3">
+    <div class="col-md-4">
+        <div class="btn-group w-100">
+            <button type="button" class="btn btn-outline-secondary" id="set-next-hour">+1 hour</button>
+            <button type="button" class="btn btn-outline-secondary" id="set-next-day">+1 day</button>
+            <button type="button" class="btn btn-outline-secondary" id="set-next-week">+1 week</button>
+            <button type="button" class="btn btn-outline-secondary" id="set-next-month">+1 month</button>
+        </div>
+    </div>
+</div>

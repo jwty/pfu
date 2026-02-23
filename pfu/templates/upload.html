@@ -13,19 +13,7 @@
                 </div>
             </div>
         </div>
-        <div class="row g-3 align-items-end">
-            <div class="col-md-2">
-                <label for="expire-date" class="form-label">Expiration date</label>
-                <input type="date" class="form-control" id="expire-date" name="expire-date">
-            </div>
-            <div class="col-md-2">
-                <label for="expire-date" class="form-label">Expiration time</label>
-                <input type="time" class="form-control" id="expire-time" name="expire-time">
-            </div>
-            <div class="col-md-2">
-                <button type="button" class="btn btn-outline-primary w-100" id="clear-expire">Clear expiration date</button>
-            </div>
-        </div>
+        {% include 'includes/_expiration_fields.html' %}
         <div class="row">
             <div class="col-md-6">
                 <label for="description" class="form-label">Description</label>
@@ -37,5 +25,5 @@
 </form>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', filename='clear-expire-date.js') }}"></script>
+<script src="{{ url_for('static', filename='expire-date-tools.js') }}"></script>
 {% endblock %}
