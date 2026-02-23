@@ -1,21 +1,21 @@
-import os
 import json
+import os
 from flask import Flask
 from flask_bootstrap import Bootstrap5
-from pfu.logging import logger
+from pfu.__version__ import __version__
 from pfu.auth import login_manager
 from pfu.config import config
 from pfu.db import configure_db
+from pfu.logging import logger
 from pfu.routes_admin import admin
 from pfu.routes_api import api
 from pfu.routes_auth import auth
 from pfu.routes_main import main
 from pfu.scheduler import scheduler
 from pfu.utils import format_datetime
-from pfu.__version__ import __version__
 
 
-def create_app():
+def create_app() -> Flask:
     app = Flask(__name__)
     app.config.from_object(config)
     logger.setLevel(config.LOG_LEVEL)
@@ -33,11 +33,11 @@ def create_app():
     configure_db(app)
     scheduler.init_app(app)
     scheduler.start()
-    import pfu.tasks  # Importing here to register tasks via decorators
+    import pfu.tasks  # noqa: F401 (Importing here to register tasks via decorators)
 
     @app.context_processor
-    def inject_globals():
-        anomalies = {}
+    def inject_globals() -> dict[str, str | dict]:
+        anomalies: dict[str, str] = {}
         anomalies_file = os.path.join(config.DATA_DIR, 'anomalies.json')
         if os.path.exists(anomalies_file):
             try:

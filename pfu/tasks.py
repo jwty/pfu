@@ -2,18 +2,18 @@ from datetime import datetime
 from pfu.config import config
 from pfu.db import get_today_expiring_files
 from pfu.jobs import add_expire_job
-from pfu.utils import integrity_check, update_stats
 from pfu.scheduler import scheduler
+from pfu.utils import integrity_check, update_stats
 
 
 @scheduler.task('interval', hours=config.INTEGRITY_CHECK_INTERVAL, name='Integrity check')
-def integrity_check_task():
+def integrity_check_task() -> None:
     with scheduler.app.app_context():
         integrity_check()
 
 
 @scheduler.task('interval', hours=config.UPDATE_STATS_INTERVAL, name='Update stats')
-def update_stats_task():
+def update_stats_task() -> None:
     with scheduler.app.app_context():
         update_stats()
 
@@ -26,7 +26,7 @@ def update_stats_task():
 # Since expire jobs should run very quickly, the offset could probably be as low as couple seconds (and will be tweaked in future),
 # for now some files being potentially deleted at most 5 minutes late is acceptable tradeoff for less annoying logs
 @scheduler.task('cron', hour='0', minute='5', next_run_time=datetime.now(), name='Prepare expire tasks')
-def prepare_expire_tasks_task():
+def prepare_expire_tasks_task() -> None:
     expiring_files = get_today_expiring_files()
     for expiring_file in expiring_files:
         add_expire_job(expiring_file['filename'], expiring_file['expire_date'])

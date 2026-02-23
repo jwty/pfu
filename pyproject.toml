@@ -11,6 +11,18 @@ dependencies = [
     "flask-apscheduler>=1.13.1",
     "flask-login>=0.6.3",
     "peewee>=3.18.3",
+    "types-peewee>=4.0.0.20260223",
     "waitress>=3.0.2",
     "werkzeug>=3.1.4",
 ]
+
+[[tool.mypy.overrides]]
+module = [
+    "flask_login",
+    "flask_login.*",
+    "flask_apscheduler",
+    "flask_apscheduler.*",
+    "flask_bootstrap",
+    "flask_bootstrap.*",
+]
+ignore_missing_imports = true

@@ -1,9 +1,10 @@
 import logging
 import os
 import tomllib
+from dataclasses import dataclass
 
 # Do not change values here - use environment variables or config.toml instead
-DEFAULTS = {
+DEFAULTS: dict[str, str | int | bool] = {
     'SECRET_KEY': 'dev-key-change-me',
     'DATA_DIR': 'data',
     'UPLOAD_DIR': 'uploads',
@@ -24,16 +25,29 @@ logger = logging.getLogger(__name__)
 
 
 # Config class for Flask compatibility
-class ConfigClass(object):
-    def __init__(self, config_dict):
-        for key, value in config_dict.items():
-            setattr(self, key, value)
+@dataclass
+class ConfigClass:
+    SECRET_KEY: str
+    DATA_DIR: str
+    UPLOAD_DIR: str
+    FILE_URL_PREFIX: str
+    CHUNK_SIZE: int
+    FILENAME_LENGTH: int
+    UPDATE_STATS_INTERVAL: int
+    INTEGRITY_CHECK_INTERVAL: int
+    HOSTNAME: str
+    PORT: int
+    LOG_LEVEL: str
+    ADMIN_USERNAME: str
+    ADMIN_PASSWORD: str
 
 
-def load_config():
+def load_config() -> ConfigClass:
     config = DEFAULTS.copy()
     env_prefix = 'PFU_'
     data_dir = os.environ.get(f'{env_prefix}DATA_DIR', config['DATA_DIR'])
+    if not isinstance(data_dir, str):
+        data_dir = str(data_dir)
     config_file = os.path.join(data_dir, 'config.toml')
     # Override defaults with config file
     if os.path.isfile(config_file):
@@ -47,11 +61,20 @@ def load_config():
         env_var = f'{env_prefix}{key}'
         if env_var in os.environ:
             config[key] = os.environ[env_var]
-    return config
+    # Coerce known integer fields
+    int_fields = ['CHUNK_SIZE', 'FILENAME_LENGTH', 'UPDATE_STATS_INTERVAL', 'INTEGRITY_CHECK_INTERVAL', 'PORT']
+    for field in int_fields:
+        if field in config:
+            try:
+                config[field] = int(config[field])
+            except (ValueError, TypeError):
+                logger.warning(f"Could not convert {field} value '{config[field]}' to int, using default.")
+                config[field] = DEFAULTS[field]
+    # This should always be type safe
+    return ConfigClass(**config)  # type: ignore
 
 
-config_dict = load_config()
-config = ConfigClass(config_dict)
+config = load_config()
 
 # Security warnings for default values
 security_warnings = []

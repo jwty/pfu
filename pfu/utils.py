@@ -1,18 +1,28 @@
+import json
 import logging
 import os
-import json
 from datetime import datetime
 from hashlib import md5
 from secrets import token_urlsafe
+from typing import BinaryIO, Optional, TypedDict
+from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
-from pfu.db import add_file_to_db, delete_file_record, get_all_file_sizes, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size, update_file_checksum_and_size
 from pfu.config import config
+from pfu.db import add_file_to_db, delete_file_record, get_all_file_sizes, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size, update_file_checksum_and_size
 from pfu.responses import Result
 
 logger = logging.getLogger(__name__)
 
 
-def clear_anomaly(filename):
+class StatsDict(TypedDict):
+    total_files: int
+    total_size: int
+    total_size_human: str
+    expiring_files: int
+    version: str
+
+
+def clear_anomaly(filename: str) -> None:
     anomalies_file = os.path.join(config.DATA_DIR, 'anomalies.json')
     if not os.path.exists(anomalies_file):
         return
@@ -27,7 +37,7 @@ def clear_anomaly(filename):
         logger.warning(f"Failed to clear anomaly for {filename}: {e}")
 
 
-def calc_md5(file_up):
+def calc_md5(file_up: BinaryIO | FileStorage) -> str:
     md5_obj = md5()
     chunk_size = config.CHUNK_SIZE
     file_buffer = file_up.read(chunk_size)
@@ -38,29 +48,26 @@ def calc_md5(file_up):
     return md5_obj.hexdigest()
 
 
-def format_datetime(timestamp):
-    if not isinstance(timestamp, int):
-        return timestamp
+def format_datetime(timestamp: Optional[int | float]) -> str:
+    if timestamp is None:
+        return ""
     dt = datetime.fromtimestamp(timestamp).astimezone()
     return dt.strftime('%Y-%m-%d %H:%M:%S %Z')
 
 
-def parse_expire_datetime(expire_date, expire_time='00:00'):
+def parse_expire_datetime(expire_date: Optional[str], expire_time: str = '00:00') -> Optional[int]:
     if not expire_date:
         return None
-    return datetime.combine(datetime.strptime(expire_date, '%Y-%m-%d'), datetime.strptime(expire_time, '%H:%M').time()).timestamp()
+    return int(datetime.combine(datetime.strptime(expire_date, '%Y-%m-%d'), datetime.strptime(expire_time, '%H:%M').time()).timestamp())
 
 
-def file_details_with_url(file_data):
-    return {**file_data, 'file_url': f"{config.FILE_URL_PREFIX}{file_data['filename']}"}
-
-
-def save_file(file, keep_filename=False, expire_timestamp=None, description=None):
+def save_file(file: FileStorage, keep_filename: bool = False, expire_timestamp: Optional[int] = None, description: Optional[str] = None) -> Result:
     md5_sum = calc_md5(file)
     # Simple duplicate avoidance if the file already exists, do not duplicate and instead return it
     if existing_file := get_file_by_checksum(md5_sum):
-        return Result.file_exists(data=file_details_with_url(existing_file))
-    filename = secure_filename(file.filename)
+        return Result.file_exists(data=dict(existing_file))
+    original_filename = file.filename or 'unnamed_file'
+    filename = secure_filename(original_filename)
     filename_root, filename_ext = os.path.splitext(filename)
     new_filename_root = token_urlsafe(config.FILENAME_LENGTH)
     if keep_filename:
@@ -75,13 +82,15 @@ def save_file(file, keep_filename=False, expire_timestamp=None, description=None
         logger.error(f'Failed to save file {new_filename}: {str(e)}')
         return Result.error(f'Failed to save file {new_filename}: {str(e)}')
     file_size = os.stat(file_path).st_size
-    add_file_to_db(new_filename, file.filename, description, md5_sum, int(datetime.now().timestamp()), expire_timestamp, file_size)
+    add_file_to_db(new_filename, original_filename, description or '', md5_sum, int(datetime.now().timestamp()), expire_timestamp, file_size)
     file_data = get_file_by_filename(new_filename)
+    if not file_data:
+        return Result.error(f'Saved file {new_filename} but could not retrieve it from database')
     logger.info(f'File saved: {new_filename} ({file_size} bytes)')
-    return Result.success(file_details_with_url(file_data))
+    return Result.success(dict(file_data))
 
 
-def recalculate_file(filename):
+def recalculate_file(filename: str) -> Result:
     file_path = os.path.join(config.UPLOAD_DIR, filename)
     try:
         file_size = os.stat(file_path).st_size
@@ -99,7 +108,7 @@ def recalculate_file(filename):
     return result
 
 
-def remove_file(filename):
+def remove_file(filename: str) -> Result:
     file_path = os.path.join(config.UPLOAD_DIR, filename)
     try:
         os.remove(file_path)
@@ -119,7 +128,7 @@ def remove_file(filename):
     return Result.success()
 
 
-def get_stats():
+def get_stats() -> StatsDict:
     stats_file = os.path.join(config.DATA_DIR, 'stats.json')
     # Create stats file if it doesn't exist
     if not os.path.exists(stats_file):
@@ -130,7 +139,7 @@ def get_stats():
     return stats
 
 
-def update_stats():
+def update_stats() -> None:
     stats_file = os.path.join(config.DATA_DIR, 'stats.json')
     stats = {
         'files_count': get_files_count(),
@@ -142,7 +151,7 @@ def update_stats():
         json.dump(stats, f, indent=4)
 
 
-def integrity_check():
+def integrity_check() -> None:
     logger.info("Starting integrity check...")
     anomalies = {}
     files = get_all_file_sizes()

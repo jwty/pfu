@@ -203,6 +203,7 @@ dependencies = [
     { name = "flask-apscheduler" },
     { name = "flask-login" },
     { name = "peewee" },
+    { name = "types-peewee" },
     { name = "waitress" },
     { name = "werkzeug" },
 ]
@@ -215,6 +216,7 @@ requires-dist = [
     { name = "flask-apscheduler", specifier = ">=1.13.1" },
     { name = "flask-login", specifier = ">=0.6.3" },
     { name = "peewee", specifier = ">=3.18.3" },
+    { name = "types-peewee", specifier = ">=4.0.0.20260223" },
     { name = "waitress", specifier = ">=3.0.2" },
     { name = "werkzeug", specifier = ">=3.1.4" },
 ]
@@ -238,6 +240,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
+name = "types-peewee"
+version = "4.0.0.20260223"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/f6/6006506f35813719d269e761000d7250d651dd19d3db3cc2694a29c37b9b/types_peewee-4.0.0.20260223.tar.gz", hash = "sha256:67e3c67f181d697fe38912d910812b7306d39f62adf17ca8b8c187873c5102ef", size = 22012, upload-time = "2026-02-23T04:11:36.431Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/d6/e098745c89bdfe8d263fe07b2e2c35e8048dca1317bf6871719c53a3552a/types_peewee-4.0.0.20260223-py3-none-any.whl", hash = "sha256:8f90db80ea7568e4b44c6558b26d9790ed2e15bf48f799e46b27cb5ec0446dcc", size = 19971, upload-time = "2026-02-23T04:11:35.435Z" },
 ]
 
 [[package]]

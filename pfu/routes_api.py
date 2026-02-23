@@ -1,19 +1,26 @@
 import logging
 from flask import Blueprint, request
 from functools import wraps
+from typing import Callable, Optional, TypedDict
 from werkzeug.security import check_password_hash
-from pfu.db import get_file_by_filename, get_secret
-from pfu.responses import Status
+from pfu.db import SecretDict, get_file_by_filename, get_secret
 from pfu.jobs import add_expire_job
-from pfu.scheduler import scheduler, next_midnight
-from pfu.utils import file_details_with_url, recalculate_file, remove_file, save_file
+from pfu.responses import Status
+from pfu.scheduler import next_midnight, scheduler
+from pfu.utils import recalculate_file, remove_file, save_file
 
 api = Blueprint('api', __name__, url_prefix='/api')
 logger = logging.getLogger(__name__)
 
 
-def permission_required(permission):
-    def decorator(function):
+class ApiResponse(TypedDict, total=False):
+    status: str
+    message: str
+    data: dict[str, object] | str
+
+
+def permission_required(permission: str) -> Callable:
+    def decorator(function: Callable) -> Callable:
         @wraps(function)
         def wrapper(*args, **kwargs):
             client_ip = request.remote_addr
@@ -33,7 +40,7 @@ def permission_required(permission):
     return decorator
 
 
-def validate_secret(request_secret):
+def validate_secret(request_secret: Optional[str]) -> Optional[SecretDict]:
     if not request_secret:
         return None
     try:
@@ -48,22 +55,21 @@ def validate_secret(request_secret):
 
 @api.get('/file/<filename>')
 @permission_required('read')
-def details(filename):
+def details(filename: str) -> tuple[ApiResponse, int] | ApiResponse:
     file = get_file_by_filename(filename)
     if not file:
         return {'status': Status.ERROR.value, 'message': 'Not found'}, 404
-    file_details = file_details_with_url(file)
-    return {'status': Status.SUCCESS.value, 'data': file_details}
+    return {'status': Status.SUCCESS.value, 'data': dict(file)}
 
 
 @api.delete('/file/<filename>')
 @permission_required('delete')
-def delete(filename):
+def delete(filename: str) -> tuple[ApiResponse, int] | ApiResponse:
     if not get_file_by_filename(filename):
         return {'status': Status.ERROR.value, 'message': 'Not found'}, 404
     result = remove_file(filename)
     if result.is_error:
-        return {'status': result.status.value, 'message': result.error}, 500
+        return {'status': result.status.value, 'message': result.error_message or "Unknown error"}, 500
     if scheduler.get_job(filename):
         scheduler.remove_job(filename)
     return {'status': result.status.value, 'message': 'File deleted'}
@@ -71,7 +77,7 @@ def delete(filename):
 
 @api.post('/upload')
 @permission_required('write')
-def upload():
+def upload() -> tuple[ApiResponse, int] | ApiResponse:
     file = request.files.get('file')
     if not file:
         return {'status': Status.ERROR.value, 'message': 'No file provided'}, 400
@@ -79,21 +85,24 @@ def upload():
     expire_timestamp = request.form.get('expire', None, int)
     description = request.form.get('description', '')
     result = save_file(file, keep_filename, expire_timestamp, description)
-    if result.is_success and expire_timestamp and expire_timestamp <= next_midnight():
-        add_expire_job(result.data.get('filename'), expire_timestamp)
     if result.is_error:
-        return {'status': result.status.value, 'message': result.error}, 500
+        return {'status': result.status.value, 'message': result.error_message or "Unknown error"}, 500
+    if not isinstance(result.data, dict):
+        return {'status': result.status.value, 'message': 'Unknown error'}, 500
+    if result.is_success and expire_timestamp and expire_timestamp <= next_midnight() and isinstance(filename := result.data.get('filename'), str):
+        add_expire_job(filename, expire_timestamp)
     return {'status': result.status.value, 'data': result.data}
 
 
 @api.post('/recalculate/<filename>')
 @permission_required('write')
-def recalculate(filename):
+def recalculate(filename: str) -> tuple[ApiResponse, int] | ApiResponse:
     if not get_file_by_filename(filename):
         return {'status': Status.ERROR.value, 'message': 'Not found'}, 404
     result = recalculate_file(filename)
     if result.is_error:
-        return {'status': result.status.value, 'message': result.error}, 500
+        return {'status': result.status.value, 'message': result.error_message or "Unknown error"}, 500
     file = get_file_by_filename(filename)
-    file_details = file_details_with_url(file)
-    return {'status': result.status.value, 'data': file_details}
+    if not file:
+        return {'status': Status.ERROR.value, 'message': 'Not found after recalculating'}, 404
+    return {'status': result.status.value, 'data': dict(file)}

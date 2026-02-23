@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Any
+from typing import Optional
 
 
 class Status(Enum):
@@ -12,8 +12,8 @@ class Status(Enum):
 @dataclass
 class Result:
     status: Status
-    data: Optional[Any] = None
-    error: Optional[str] = None
+    data: Optional[dict[str, object] | str | bool] = None
+    error_message: Optional[str] = None
 
     @property
     def is_success(self) -> bool:
@@ -28,13 +28,13 @@ class Result:
         return self.status == Status.FILE_EXISTS
 
     @classmethod
-    def success(cls, data=None):
+    def success(cls, data: dict[str, object] | str | bool | None = None) -> 'Result':
         return cls(status=Status.SUCCESS, data=data)
 
     @classmethod
-    def error(cls, error_msg: str):
-        return cls(status=Status.ERROR, error=error_msg)
+    def error(cls, error_msg: str) -> 'Result':
+        return cls(status=Status.ERROR, error_message=error_msg)
 
     @classmethod
-    def file_exists(cls, data):
+    def file_exists(cls, data: dict[str, object] | str | bool | None) -> 'Result':
         return cls(status=Status.FILE_EXISTS, data=data)

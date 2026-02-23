@@ -1,5 +1,6 @@
 import os
 import secrets
+from typing import Optional
 from flask_login import LoginManager, UserMixin
 from pfu.config import config
 
@@ -11,13 +12,13 @@ class User(UserMixin):
     username = config.ADMIN_USERNAME
     password = config.ADMIN_PASSWORD
 
-    def get_id(self):
+    def get_id(self) -> str:
         # Include session token in user ID so changing it invalidates all sessions
         session_token = load_session_token()
         return f"{self.username}:{session_token}"
 
 
-def load_session_token():
+def load_session_token() -> str:
     try:
         with open(token_path, 'r') as f:
             return f.read().strip()
@@ -25,7 +26,7 @@ def load_session_token():
         return new_session_token()
 
 
-def new_session_token():
+def new_session_token() -> str:
     token = secrets.token_urlsafe(32)
     with open(token_path, 'w') as f:
         f.write(token)
@@ -33,7 +34,7 @@ def new_session_token():
 
 
 @login_manager.user_loader
-def load_user(user_id):
+def load_user(user_id: str) -> Optional[User]:
     try:
         username, token = user_id.split(':', 1)
         current_token = load_session_token()

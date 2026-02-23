@@ -1,8 +1,8 @@
 import os
-from peewee import fn, SqliteDatabase, Model, TextField, IntegerField, BooleanField, DoesNotExist, IntegrityError
-from playhouse.flask_utils import PaginatedQuery
-from playhouse.shortcuts import model_to_dict
 from secrets import token_hex
+from typing import Optional, TypedDict, cast
+from peewee import BooleanField, DoesNotExist, IntegerField, IntegrityError, Model, SqliteDatabase, TextField, fn
+from playhouse.flask_utils import PaginatedQuery  # type: ignore
 from werkzeug.security import generate_password_hash
 from pfu.config import config
 from pfu.responses import Result
@@ -12,18 +12,18 @@ database_path = os.path.join(config.DATA_DIR, 'database.db')
 database = SqliteDatabase(database_path)
 
 
-def initialize_db():
+def initialize_db() -> SqliteDatabase:
     database.connect()
     database.create_tables([Files, Secrets])
     database.close()
     return database
 
 
-def configure_db(app):
+def configure_db(app) -> None:
     database = initialize_db()
 
     @app.teardown_request
-    def teardown_request(exception):
+    def teardown_request(exception: Optional[BaseException] = None) -> None:
         if not database.is_closed():
             database.close()
 
@@ -31,6 +31,39 @@ def configure_db(app):
 class BaseModel(Model):
     class Meta:
         database = database
+
+
+class FileDict(TypedDict):
+    id: int
+    filename: str
+    original_filename: str
+    description: str
+    checksum: str
+    upload_date: int
+    expire_date: Optional[int]
+    size: int
+    file_url: str
+
+
+class SecretDict(TypedDict):
+    id: int
+    name: str
+    description: Optional[str]
+    perm_read: bool
+    perm_write: bool
+    perm_delete: bool
+    prefix: str
+    hash: str
+
+
+class FileSizeDict(TypedDict):
+    filename: str
+    size: int
+
+
+class FileExpireDict(TypedDict):
+    filename: str
+    expire_date: int
 
 
 class Files(BaseModel):
@@ -41,6 +74,10 @@ class Files(BaseModel):
     upload_date = IntegerField()
     expire_date = IntegerField(null=True)
     size = IntegerField()
+
+    @property
+    def file_url(self) -> str:
+        return f"{config.FILE_URL_PREFIX}{self.filename}"
 
     class Meta:
         table_name = 'files'
@@ -56,31 +93,58 @@ class Secrets(BaseModel):
     hash = TextField()
 
 
-def add_file_to_db(filename, original_filename, description, checksum, upload_date, expire_date, size):
+def _file_to_dict(file: Files) -> FileDict:
+    return FileDict(
+        id=cast(int, file.get_id()),
+        filename=cast(str, file.filename),
+        original_filename=cast(str, file.original_filename),
+        description=cast(str, file.description),
+        checksum=cast(str, file.checksum),
+        upload_date=cast(int, file.upload_date),
+        expire_date=cast(Optional[int], file.expire_date),
+        size=cast(int, file.size),
+        file_url=cast(str, file.file_url)
+    )
+
+
+def _secret_to_dict(secret: Secrets) -> SecretDict:
+    return SecretDict(
+        id=cast(int, secret.get_id()),
+        name=cast(str, secret.name),
+        description=cast(Optional[str], secret.description),
+        perm_read=cast(bool, secret.perm_read),
+        perm_write=cast(bool, secret.perm_write),
+        perm_delete=cast(bool, secret.perm_delete),
+        prefix=cast(str, secret.prefix),
+        hash=cast(str, secret.hash)
+    )
+
+
+def add_file_to_db(filename: str, original_filename: str, description: str, checksum: str, upload_date: int, expire_date: Optional[int], size: int) -> None:
     Files.create(filename=filename, original_filename=original_filename, description=description, checksum=checksum, upload_date=upload_date, expire_date=expire_date, size=size)
 
 
-def delete_file_record(filename):
+def delete_file_record(filename: str) -> None:
     Files.delete().where(Files.filename == filename).execute()
 
 
-def get_file_by_checksum(checksum):
+def get_file_by_checksum(checksum: str) -> Optional[FileDict]:
     try:
         file = Files.get(Files.checksum == checksum)
     except DoesNotExist:
         return None
-    return model_to_dict(file)
+    return _file_to_dict(file)
 
 
-def get_file_by_filename(filename):
+def get_file_by_filename(filename: str) -> Optional[FileDict]:
     try:
         file = Files.get(Files.filename == filename)
     except DoesNotExist:
         return None
-    return model_to_dict(file)
+    return _file_to_dict(file)
 
 
-def update_file(filename, description, expire_date=None):
+def update_file(filename: str, description: str, expire_date: Optional[int] = None) -> Result:
     try:
         file = Files.get(Files.filename == filename)
         file.description = description
@@ -94,7 +158,7 @@ def update_file(filename, description, expire_date=None):
     return Result.success()
 
 
-def update_file_checksum_and_size(filename, new_checksum, new_size):
+def update_file_checksum_and_size(filename: str, new_checksum: str, new_size: int) -> Result:
     try:
         file = Files.get(Files.filename == filename)
         file.checksum = new_checksum
@@ -109,19 +173,19 @@ def update_file_checksum_and_size(filename, new_checksum, new_size):
     return Result.success()
 
 
-def get_files_count():
+def get_files_count() -> int:
     return Files.select().count()
 
 
-def get_files_expiring_count():
+def get_files_expiring_count() -> int:
     return Files.select().where(Files.expire_date.is_null(False)).count()
 
 
-def get_files_size():
+def get_files_size() -> int:
     return Files.select(fn.SUM(Files.size)).scalar() or 0
 
 
-def get_files_page(per_page, page, sort_by, query=None):
+def get_files_page(per_page: int, page: int, sort_by: str, query: Optional[str] = None) -> tuple[list[Files], int, int]:
     base_query = Files.select()
     if query:
         base_query = base_query.where(Files.filename.contains(query) | Files.original_filename.contains(query))
@@ -137,30 +201,30 @@ def get_files_page(per_page, page, sort_by, query=None):
     return files, current_page, possible_pages
 
 
-def get_files_list():
+def get_files_list() -> list[str]:
     return [file.filename for file in Files.select()]
 
 
-def get_all_file_sizes():
-    return [{'filename': file.filename, 'size': file.size} for file in Files.select(Files.filename, Files.size)]
+def get_all_file_sizes() -> list[FileSizeDict]:
+    return [FileSizeDict(filename=file.filename, size=file.size) for file in Files.select(Files.filename, Files.size)]
 
 
-def get_secrets():
-    return [model_to_dict(secret) for secret in Secrets.select()]
+def get_secrets() -> list[SecretDict]:
+    return [_secret_to_dict(secret) for secret in Secrets.select()]
 
 
-def get_secret(prefix=None, secret_id=None):
+def get_secret(prefix: Optional[str] = None, secret_id: Optional[int] = None) -> Optional[SecretDict]:
     try:
         if prefix:
             secret = Secrets.get(Secrets.prefix == prefix)
         elif secret_id:
-            secret = Secrets.get(Secrets.id == secret_id)
+            secret = Secrets.get_by_id(secret_id)
     except DoesNotExist:
         return None
-    return model_to_dict(secret)
+    return _secret_to_dict(secret)
 
 
-def new_secret(name, description, perm_read, perm_write, perm_delete):
+def new_secret(name: str, description: Optional[str], perm_read: bool, perm_write: bool, perm_delete: bool) -> Result:
     secret_prefix = token_hex(4)
     secret_token = token_hex(16)
     secret_key = f'{secret_prefix}-{secret_token}'
@@ -172,15 +236,15 @@ def new_secret(name, description, perm_read, perm_write, perm_delete):
     return Result.success(data=secret_key)
 
 
-def delete_secret(secret_id):
+def delete_secret(secret_id: int) -> Result:
     try:
-        secret = Secrets.get(Secrets.id == secret_id)
+        secret = Secrets.get_by_id(secret_id)
         secret.delete_instance()
     except DoesNotExist:
         return Result.error('Secret not found')
     return Result.success()
 
 
-def get_today_expiring_files():
+def get_today_expiring_files() -> list[FileExpireDict]:
     expiring_files_query = Files.select(Files.filename, Files.expire_date).where(Files.expire_date <= next_midnight())
-    return [model_to_dict(expiring_file, only=[Files.filename, Files.expire_date]) for expiring_file in expiring_files_query]
+    return [FileExpireDict(filename=expiring_file.filename, expire_date=expiring_file.expire_date) for expiring_file in expiring_files_query]

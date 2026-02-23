@@ -2,6 +2,7 @@ import logging
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash
+from werkzeug.wrappers import Response
 from pfu.auth import User, new_session_token
 from pfu.config import security_warnings
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @auth.get('/login')
-def login():
+def login() -> str | Response:
     if current_user.is_authenticated:
         flash('Already logged in', 'info')
         return redirect(url_for('main.index'))
@@ -18,9 +19,9 @@ def login():
 
 
 @auth.post('/login')
-def login_post():
+def login_post() -> str | Response:
     username = request.form.get('username')
-    password = request.form.get('password')
+    password = request.form.get('password') or ''
     remember_user = True if request.form.get('remember_user') else False
     user = User()
     if username != user.username or not check_password_hash(user.password, password):
@@ -41,7 +42,7 @@ def login_post():
 
 @auth.get('/logout')
 @login_required
-def logout():
+def logout() -> Response:
     logout_user()
     flash('Logged out successfully', 'success')
     return redirect(url_for('main.index'))
@@ -49,9 +50,9 @@ def logout():
 
 @auth.get('/logout-all-sessions')
 @login_required
-def logout_all_sessions():
+def logout_all_sessions() -> Response:
     new_session_token()
     logout_user()
-    logger.debug(f'All sessions invalidated')
+    logger.debug('All sessions invalidated')
     flash('Logged out from all sessions successfully', 'success')
     return redirect(url_for('main.index'))

@@ -1,9 +1,9 @@
 from datetime import datetime
-from pfu.utils import remove_file
 from pfu.scheduler import scheduler
+from pfu.utils import remove_file
 
 
-def add_expire_job(filename, expire_date):
+def add_expire_job(filename: str, expire_date: int) -> None:
     # Just to make sure
     if not scheduler.get_job(filename):
         scheduler.add_job(
