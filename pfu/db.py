@@ -141,6 +141,10 @@ def get_files_list():
     return [file.filename for file in Files.select()]
 
 
+def get_all_file_sizes():
+    return [{'filename': file.filename, 'size': file.size} for file in Files.select(Files.filename, Files.size)]
+
+
 def get_secrets():
     return [model_to_dict(secret) for secret in Secrets.select()]
 

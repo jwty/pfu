@@ -1,3 +1,5 @@
+import os
+import json
 from flask import Flask
 from flask_bootstrap import Bootstrap5
 from pfu.logging import logger
@@ -34,7 +36,15 @@ def create_app():
     import pfu.tasks  # Importing here to register tasks via decorators
 
     @app.context_processor
-    def inject_version():
-        return {'app_version': __version__}
+    def inject_globals():
+        anomalies = {}
+        anomalies_file = os.path.join(config.DATA_DIR, 'anomalies.json')
+        if os.path.exists(anomalies_file):
+            try:
+                with open(anomalies_file, 'r') as f:
+                    anomalies = json.load(f)
+            except (json.JSONDecodeError, OSError):
+                pass
+        return {'app_version': __version__, 'integrity_anomalies': anomalies}
 
     return app

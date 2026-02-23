@@ -11,6 +11,7 @@ DEFAULTS = {
     'CHUNK_SIZE': 65536,
     'FILENAME_LENGTH': 5,
     'UPDATE_STATS_INTERVAL': 1,  # In hours
+    'INTEGRITY_CHECK_INTERVAL': 24,  # In hours
     'HOSTNAME': '0.0.0.0',
     'PORT': '8080',
     'LOG_LEVEL': 'INFO',

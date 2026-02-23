@@ -9,6 +9,7 @@
 <div>Combined size (as stored in database): <strong>{{ stats.files_size | filesizeformat }}</strong></div>
 <h5>Actions</h5>
 <a href="{{ url_for('admin.update_stats_route') }}" class="btn btn-primary mb-1"><i class="bi bi-arrow-clockwise"></i> Update statistics</a>
-<a href="{{ url_for('admin.check_for_orphans') }}" class="btn btn-primary mb-1">Check for orphans</a>
+<a href="{{ url_for('admin.run_integrity_check') }}" class="btn btn-primary mb-1"><i class="bi bi-shield-check"></i> Run integrity check</a>
+<a href="{{ url_for('admin.check_for_orphans') }}" class="btn btn-primary mb-1"><i class="bi bi-file-earmark-x"></i> Check for orphans</a>
 <a href="{{ url_for('auth.logout_all_sessions') }}" class="btn btn-danger mb-1"><i class="bi bi-box-arrow-right"></i> Logout all sessions</a>
 {% endblock %}

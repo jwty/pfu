@@ -2,8 +2,14 @@ from datetime import datetime
 from pfu.config import config
 from pfu.db import get_today_expiring_files
 from pfu.jobs import add_expire_job
-from pfu.utils import update_stats
+from pfu.utils import integrity_check, update_stats
 from pfu.scheduler import scheduler
+
+
+@scheduler.task('interval', hours=config.INTEGRITY_CHECK_INTERVAL, name='Integrity check')
+def integrity_check_task():
+    with scheduler.app.app_context():
+        integrity_check()
 
 
 @scheduler.task('interval', hours=config.UPDATE_STATS_INTERVAL, name='Update stats')

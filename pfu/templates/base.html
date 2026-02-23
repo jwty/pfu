@@ -43,6 +43,24 @@
         </div>
     </nav>
     <main class="container mb-3">
+        {% if integrity_anomalies and current_user.is_authenticated %}
+        <div class="alert alert-danger" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i> Integrity Anomaly Detected</h5>
+            <p class="mb-0">The following files are missing or have an unexpected size compared to their database records:</p>
+            <ul class="mt-2">
+                {% for anomaly, details in integrity_anomalies.items() %}
+                <li>
+                    <strong><a href="{{ url_for('main.edit_file', filename=anomaly) }}" class="alert-link text-decoration-underline">{{ anomaly }}</a></strong>
+                    {% if details.type == 'size' %}
+                    <span class="text-muted small ms-1">(expected size: {{ details.expected }}, actual: {{ details.actual }})</span>
+                    {% elif details.type == 'missing' %}
+                    <span class="text-muted small ms-1">(missing)</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
         {{ render_messages(dismissible=true) }}
         {% block content %}{% endblock %}
     </main>

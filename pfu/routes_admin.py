@@ -4,7 +4,7 @@ from flask_login import login_required
 from markupsafe import Markup
 from os import listdir
 from pfu.db import delete_secret, get_files_list, get_secrets, get_secret, new_secret
-from pfu.utils import update_stats
+from pfu.utils import integrity_check, update_stats
 
 admin = Blueprint('admin', __name__)
 logger = logging.getLogger(__name__)
@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 @login_required
 def update_stats_route():
     update_stats()
+    return redirect(url_for('main.home'))
+
+
+@admin.get('/run-integrity-check')
+@login_required
+def run_integrity_check():
+    integrity_check()
+    flash('Integrity check completed successfully', 'success')
     return redirect(url_for('main.home'))
 
 

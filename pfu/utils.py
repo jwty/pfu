@@ -5,11 +5,26 @@ from datetime import datetime
 from hashlib import md5
 from secrets import token_urlsafe
 from werkzeug.utils import secure_filename
-from pfu.db import add_file_to_db, delete_file_record, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size, update_file_checksum_and_size
+from pfu.db import add_file_to_db, delete_file_record, get_all_file_sizes, get_file_by_checksum, get_file_by_filename, get_files_count, get_files_expiring_count, get_files_size, update_file_checksum_and_size
 from pfu.config import config
 from pfu.responses import Result
 
 logger = logging.getLogger(__name__)
+
+
+def clear_anomaly(filename):
+    anomalies_file = os.path.join(config.DATA_DIR, 'anomalies.json')
+    if not os.path.exists(anomalies_file):
+        return
+    try:
+        with open(anomalies_file, 'r') as f:
+            anomalies = json.load(f)
+        if filename in anomalies:
+            del anomalies[filename]
+            with open(anomalies_file, 'w') as f:
+                json.dump(anomalies, f)
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"Failed to clear anomaly for {filename}: {e}")
 
 
 def calc_md5(file_up):
@@ -80,6 +95,7 @@ def recalculate_file(filename):
     result = update_file_checksum_and_size(filename, md5_sum, file_size)
     if result.is_success:
         logger.info(f'File recalculated: {filename} ({file_size} bytes, {md5_sum})')
+        clear_anomaly(filename)
     return result
 
 
@@ -99,6 +115,7 @@ def remove_file(filename):
         logger.error(f'Failed to delete database record for {filename}: {str(e)}')
         return Result.error(f'Failed to delete database record for file {filename}: {str(e)}')
     logger.info(f'File removed: {filename}')
+    clear_anomaly(filename)
     return Result.success()
 
 
@@ -123,3 +140,30 @@ def update_stats():
     }
     with open(stats_file, 'w') as f:
         json.dump(stats, f, indent=4)
+
+
+def integrity_check():
+    logger.info("Starting integrity check...")
+    anomalies = {}
+    files = get_all_file_sizes()
+    for file in files:
+        filename = file['filename']
+        expected_size = file['size']
+        file_path = os.path.join(config.UPLOAD_DIR, filename)
+        try:
+            actual_size = os.stat(file_path).st_size
+            if actual_size != expected_size:
+                logger.warning(f"INTEGRITY ANOMALY: {filename} expected {expected_size} bytes, found {actual_size} bytes on disk.")
+                anomalies[filename] = {'type': 'size', 'expected': expected_size, 'actual': actual_size}
+        except FileNotFoundError:
+            logger.warning(f"INTEGRITY ANOMALY: {filename} exists in database but is completely missing from disk.")
+            anomalies[filename] = {'type': 'missing'}
+        except OSError as e:
+            logger.error(f"Failed to stat file {filename} during integrity check: {e}")
+    anomalies_file = os.path.join(config.DATA_DIR, 'anomalies.json')
+    try:
+        with open(anomalies_file, 'w') as f:
+            json.dump(anomalies, f)
+    except OSError as e:
+        logger.error(f"Failed to write anomalies file: {e}")
+    logger.info(f"Integrity check complete. Found {len(anomalies)} anomalies.")
