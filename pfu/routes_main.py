@@ -3,10 +3,9 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from markupsafe import Markup
 from werkzeug.wrappers import Response
-from pfu.db import get_file_by_filename, update_file
-from pfu.jobs import add_expire_job
+from pfu.db import get_file_by_filename, next_midnight, update_file
 from pfu.pagination import PaginationHelper
-from pfu.scheduler import next_midnight, scheduler
+from pfu.scheduler import add_expire_job, scheduler
 from pfu.utils import get_stats, parse_expire_datetime, recalculate_file, remove_file, save_file
 
 main = Blueprint('main', __name__)

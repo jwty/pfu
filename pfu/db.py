@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, time, timedelta
 from secrets import token_hex
 from typing import Optional, TypedDict, cast
 from peewee import BooleanField, DoesNotExist, IntegerField, IntegrityError, Model, SqliteDatabase, TextField, fn
@@ -6,10 +7,13 @@ from playhouse.flask_utils import PaginatedQuery  # type: ignore
 from werkzeug.security import generate_password_hash
 from pfu.config import config
 from pfu.responses import Result
-from pfu.scheduler import next_midnight
 
 database_path = os.path.join(config.DATA_DIR, 'database.db')
 database = SqliteDatabase(database_path)
+
+
+def next_midnight() -> int:
+    return int((datetime.combine(datetime.now().date(), time(0, 0)) + timedelta(1)).timestamp())
 
 
 def initialize_db() -> SqliteDatabase:

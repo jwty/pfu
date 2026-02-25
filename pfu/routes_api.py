@@ -3,10 +3,9 @@ from flask import Blueprint, request
 from functools import wraps
 from typing import Callable, Optional, TypedDict
 from werkzeug.security import check_password_hash
-from pfu.db import SecretDict, get_file_by_filename, get_secret
-from pfu.jobs import add_expire_job
+from pfu.db import SecretDict, get_file_by_filename, get_secret, next_midnight
 from pfu.responses import Status
-from pfu.scheduler import next_midnight, scheduler
+from pfu.scheduler import add_expire_job, scheduler
 from pfu.utils import recalculate_file, remove_file, save_file
 
 api = Blueprint('api', __name__, url_prefix='/api')

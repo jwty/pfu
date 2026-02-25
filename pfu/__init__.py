@@ -3,10 +3,10 @@ import os
 from flask import Flask
 from flask_bootstrap import Bootstrap5
 from pfu.__version__ import __version__
+from pfu.logging import logger
 from pfu.auth import login_manager
 from pfu.config import config
 from pfu.db import configure_db
-from pfu.logging import logger
 from pfu.routes_admin import admin
 from pfu.routes_api import api
 from pfu.routes_auth import auth
@@ -33,7 +33,6 @@ def create_app() -> Flask:
     configure_db(app)
     scheduler.init_app(app)
     scheduler.start()
-    import pfu.tasks  # noqa: F401 (Importing here to register tasks via decorators)
 
     @app.context_processor
     def inject_globals() -> dict[str, str | dict]:
