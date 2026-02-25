@@ -5,7 +5,6 @@ from flask_login import LoginManager, UserMixin
 from pfu.config import config
 
 login_manager = LoginManager()
-token_path = os.path.join(config.DATA_DIR, '.session_token')
 
 
 class User(UserMixin):
@@ -20,7 +19,7 @@ class User(UserMixin):
 
 def load_session_token() -> str:
     try:
-        with open(token_path, 'r') as f:
+        with open(os.path.join(config.DATA_DIR, '.session_token'), 'r') as f:
             return f.read().strip()
     except FileNotFoundError:
         return new_session_token()
@@ -28,7 +27,7 @@ def load_session_token() -> str:
 
 def new_session_token() -> str:
     token = secrets.token_urlsafe(32)
-    with open(token_path, 'w') as f:
+    with open(os.path.join(config.DATA_DIR, '.session_token'), 'w') as f:
         f.write(token)
     return token
 
