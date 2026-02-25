@@ -2,7 +2,7 @@
 {% block title %}Edit {{ file.filename }}{% endblock %}
 {% block content %}
 <h4>Editing file <strong>{{ file.filename }}</strong></h4>
-<p class="text-muted">{{ file.original_filename }}, {{ file.size | filesizeformat }}, uploaded at {{ file.upload_date | datetime }}</p>
+<p class="text-muted">{{ file.original_filename }}, {{ file.size | filesizeformat }}, uploaded at {{ file.upload_date | datetime_exact }}</p>
 <div class="d-flex align-items-center mb-3">
     <p class="mb-0 me-3">Checksum: <code class="small">{{ file.checksum }}</code></p>
     <form method="post" action="{{ url_for('main.recalculate_file_post', filename=file.filename) }}" class="d-inline">

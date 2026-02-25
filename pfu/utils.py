@@ -1,3 +1,4 @@
+import humanize
 import json
 import logging
 import os
@@ -49,6 +50,13 @@ def calc_md5(file_up: BinaryIO | FileStorage) -> str:
 
 
 def format_datetime(timestamp: Optional[int | float]) -> str:
+    if timestamp is None:
+        return ""
+    dt = datetime.fromtimestamp(timestamp).astimezone()
+    return humanize.naturaltime(dt)
+
+
+def format_datetime_exact(timestamp: Optional[int | float]) -> str:
     if timestamp is None:
         return ""
     dt = datetime.fromtimestamp(timestamp).astimezone()
@@ -135,7 +143,7 @@ def get_stats() -> StatsDict:
         update_stats()
     with open(stats_file, 'r') as f:
         stats = json.load(f)
-    stats['last_updated'] = datetime.fromtimestamp(stats['last_updated']).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')
+    stats['last_updated'] = humanize.naturaltime(datetime.fromtimestamp(stats['last_updated']).astimezone())
     return stats
 
 

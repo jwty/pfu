@@ -20,14 +20,14 @@
     <div class="row g-0 bg-light border-bottom fw-bold d-none d-md-flex align-items-center py-2 px-3">
         <div class="col-md-3">Filename</div>
         <div class="col-md-3">Description</div>
-        <div class="col-md-2"><a href="{{ url_for('main.files', sort='date', q=search_query) }}" class="text-decoration-none">Upload Date <i class="bi bi-sort-down"></i></a></div>
-        <div class="col-md-2"><a href="{{ url_for('main.files', sort='expire_date', q=search_query) }}" class="text-decoration-none">Expire Date <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-2"><a href="{{ url_for('main.files', sort='date', q=search_query) }}" class="text-decoration-none">Uploaded <i class="bi bi-sort-down"></i></a></div>
+        <div class="col-md-2"><a href="{{ url_for('main.files', sort='expire_date', q=search_query) }}" class="text-decoration-none">Expires <i class="bi bi-sort-down"></i></a></div>
         <div class="col-md-1 text-end"><a href="{{ url_for('main.files', sort='size', q=search_query) }}" class="text-decoration-none">Size <i class="bi bi-sort-down"></i></a></div>
         <div class="col-md-1 text-end">Actions</div>
     </div>
     <!-- Action buttons possibly too small to comfortably click on mobile devices -->
     {% for file in files %}
-    <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;" data-filename="{{ file.filename }}" data-original-filename="{{ file.original_filename }}" data-size="{{ file.size | filesizeformat }}" data-file-url="{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" data-description="{{ file.description | urlize | join or '' }}" data-upload-date="{{ file.upload_date | datetime }}" data-expire-date="{{ file.expire_date | datetime or ''}}" data-checksum="{{ file.checksum }}">
+    <div class="row g-0 border-bottom file-row align-items-center py-2 px-3" style="cursor: pointer;" data-filename="{{ file.filename }}" data-original-filename="{{ file.original_filename }}" data-size="{{ file.size | filesizeformat }}" data-file-url="{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" data-description="{{ file.description | urlize | join or '' }}" data-upload-date="{{ file.upload_date | datetime_exact }}" data-expire-date="{{ file.expire_date | datetime_exact or ''}}" data-checksum="{{ file.checksum }}">
         <div class="col-md-3 text-break pe-3">
             <span class="fw-semibold"><a href="{{ config['FILE_URL_PREFIX'] }}{{ file.filename }}" target="_blank" class="text-decoration-none">{{ file.filename }}</a></span>
             <span class="d-block small text-muted">{{ file.original_filename }}</span>
@@ -39,7 +39,7 @@
             {{ file.upload_date | datetime }}
         </div>
         <div class="col-md-2 small">
-            {% if file.expire_date %}{{ file.expire_date | datetime }}{% else %}<span class="text-muted fst-italic">(no exp. date)</span>{% endif %}
+            {% if file.expire_date %}{{ file.expire_date | datetime }}{% else %}<span class="text-muted fst-italic">(never)</span>{% endif %}
         </div>
         <div class="col-md-1 text-md-end small">
             {{ file.size | filesizeformat }}
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
                              { key: 'File URL', value: `<a href="${data.fileUrl}" target="_blank">${data.fileUrl}</a>` },
                              { key: 'Description', value: data.description ? `<span style="white-space: pre-wrap;">${data.description}</span>` : '<span class="text-muted fst-italic small">(no description)</span>' },
                              { key: 'Upload Date', value: data.uploadDate },
-                             { key: 'Expire Date', value: data.expireDate || '<span class="text-muted fst-italic small">(no exp. date)</span>' },
+                             { key: 'Expire Date', value: data.expireDate || '<span class="text-muted fst-italic small">(no expiration date)</span>' },
                              { key: 'Checksum', value: `<code class="small">${data.checksum}</code>` }];
             detailsBody.innerHTML = '';
             fields.forEach(field => { const tr = document.createElement('tr');

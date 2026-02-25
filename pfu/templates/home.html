@@ -3,9 +3,9 @@
 {% block content %}
 <h4>Home</h4>
 <h5>Statistics</h5>
-<div class="small text-muted"><i>(as of {{ stats.last_updated }})</i></div>
-<div>Files currently in database: <strong>{{ stats.files_count }}</strong></div>
-<div>Files currently set for expiration: <strong>{{ stats.files_expiring_count }}</strong></div>
+<div class="small text-muted"><i>(updated {{ stats.last_updated }})</i></div>
+<div>Files currently in database: <strong>{{ stats.files_count | intcomma }}</strong></div>
+<div>Files currently set for expiration: <strong>{{ stats.files_expiring_count | intcomma }}</strong></div>
 <div>Combined size (as stored in database): <strong>{{ stats.files_size | filesizeformat }}</strong></div>
 <h5>Actions</h5>
 <a href="{{ url_for('admin.update_stats_route') }}" class="btn btn-primary mb-1"><i class="bi bi-arrow-clockwise"></i> Update statistics</a>

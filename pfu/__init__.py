@@ -1,3 +1,4 @@
+import humanize
 import json
 import os
 from flask import Flask
@@ -12,7 +13,7 @@ from pfu.routes_api import api
 from pfu.routes_auth import auth
 from pfu.routes_main import main
 from pfu.scheduler import scheduler
-from pfu.utils import format_datetime
+from pfu.utils import format_datetime, format_datetime_exact
 
 
 def create_app() -> Flask:
@@ -22,6 +23,8 @@ def create_app() -> Flask:
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     app.jinja_env.filters['datetime'] = format_datetime
+    app.jinja_env.filters['datetime_exact'] = format_datetime_exact
+    app.jinja_env.filters['intcomma'] = humanize.intcomma
     bootstrap = Bootstrap5()
     bootstrap.init_app(app)
     app.jinja_env.trim_blocks = True
