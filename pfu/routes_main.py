@@ -3,6 +3,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from markupsafe import Markup
 from werkzeug.wrappers import Response
+from pfu.config import config
 from pfu.db import get_file_by_filename, next_midnight, update_file
 from pfu.pagination import PaginationHelper
 from pfu.scheduler import add_expire_job, scheduler
@@ -14,7 +15,7 @@ main = Blueprint('main', __name__)
 @main.get('/')
 def index() -> str | Response:
     if current_user.is_authenticated:
-        return redirect(url_for('main.home'))
+        return redirect(config.INDEX_REDIRECT)
     return render_template('index.html')
 
 

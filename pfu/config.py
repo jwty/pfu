@@ -16,6 +16,7 @@ DEFAULTS: dict[str, str | int | bool] = {
     'HOSTNAME': '0.0.0.0',
     'PORT': '8080',
     'LOG_LEVEL': 'INFO',
+    'INDEX_REDIRECT': '/home',
     # Default admin account (admin:password)
     'ADMIN_USERNAME': 'admin',
     'ADMIN_PASSWORD': 'scrypt:32768:8:1$vvnNBZL0bMiA9wPG$5edcc73a73eedeca672f182fc50a75c6a01f3a0fe3f9b912d33050b43a6d4e6c15d4d3ec7ab09c82ed9c31856b162eb0456f84f4baf1359d06992eed59a518f7'
@@ -38,6 +39,7 @@ class ConfigClass:
     HOSTNAME: str
     PORT: int
     LOG_LEVEL: str
+    INDEX_REDIRECT: str
     ADMIN_USERNAME: str
     ADMIN_PASSWORD: str
 
@@ -70,6 +72,11 @@ def load_config() -> ConfigClass:
             except (ValueError, TypeError):
                 logger.warning(f"Could not convert {field} value '{config[field]}' to int, using default.")
                 config[field] = DEFAULTS[field]
+    # Roughly validate INDEX_REDIRECT
+    index_redirect = config['INDEX_REDIRECT']
+    if not isinstance(index_redirect, str) or not index_redirect.startswith('/') or index_redirect == '/':
+        logger.warning(f"INDEX_REDIRECT '{index_redirect}' must be a valid path starting with '/', using default '/home'.")
+        config['INDEX_REDIRECT'] = '/home'
     # This should always be type safe
     return ConfigClass(**config)  # type: ignore
 
