@@ -11,10 +11,10 @@ dependencies = [
     "flask-apscheduler>=1.13.1",
     "flask-login>=0.6.3",
     "humanize>=4.15.0",
-    "peewee>=4.0.0",
-    "types-peewee>=4.0.0.20260223",
+    "peewee>=4.0.4",
+    "types-peewee>=4.0.0.20260408",
     "waitress>=3.0.2",
-    "werkzeug>=3.1.6",
+    "werkzeug>=3.1.8",
 ]
 
 [[tool.mypy.overrides]]
@@ -31,9 +31,9 @@ ignore_missing_imports = true
 [dependency-groups]
 dev = [
     "freezegun>=1.5.5",
-    "mypy>=1.19.1",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
+    "mypy>=1.20.2",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
     "pytest-flask>=1.3.0",
 ]
 

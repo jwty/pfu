@@ -6,7 +6,7 @@ blinker==1.9.0
     # via flask
 bootstrap-flask==2.5.0
     # via pfu
-click==8.3.1
+click==8.3.2
     # via flask
 colorama==0.4.6 ; sys_platform == 'win32'
     # via
@@ -24,6 +24,8 @@ flask-apscheduler==1.13.1
     # via pfu
 flask-login==0.6.3
     # via pfu
+humanize==4.15.0
+    # via pfu
 itsdangerous==2.2.0
     # via flask
 jinja2==3.1.6
@@ -34,21 +36,21 @@ markupsafe==3.0.3
     #   jinja2
     #   werkzeug
     #   wtforms
-peewee==4.0.0
+peewee==4.0.4
     # via pfu
 python-dateutil==2.9.0.post0
     # via flask-apscheduler
 six==1.17.0
     # via python-dateutil
-types-peewee==4.0.0.20260223
+types-peewee==4.0.0.20260408
     # via pfu
-tzdata==2025.3 ; sys_platform == 'win32'
+tzdata==2026.1 ; sys_platform == 'win32'
     # via tzlocal
 tzlocal==5.3.1
     # via apscheduler
 waitress==3.0.2
     # via pfu
-werkzeug==3.1.6
+werkzeug==3.1.8
     # via
     #   flask
     #   flask-login

@@ -1,5 +1,5 @@
 # pfu - personal file uploader
-Simple, single-user file uploader with basic file management features I made for personal use. Probably not the most efficient or secure solution out there but it works for me.
+Simple, single-user file uploader with basic file management features I made for personal use.
 
 ## Table of contents
 - [Installation](#installation)
@@ -177,11 +177,18 @@ You can use `generate-credentials.py` script to generate new admin credentials, 
 | `CHUNK_SIZE` | `65536` | File chunk size for MD5 calculation (bytes) |
 | `FILENAME_LENGTH` | `5` | Length of random filename component |
 | `UPDATE_STATS_INTERVAL` | `1` | Stats update interval (hours) |
+| `INTEGRITY_CHECK_INTERVAL` | `24` | Integrity check interval (hours) |
+| `INDEX_REDIRECT` | `/home` | Default route for authenticated users on index |
 
 ## Web interface
+
+> [!NOTE]
+> Some screenshots may show an older version number - this simply indicates that this particular view hasn't changed since that version.
+
 ### Home page
 Default view after login. Shows stats and actions.
 - **Update statistics** - Updates stats seen on this page.
+- **Run integrity check** - Checks file integrity: verifies on disk files match database records and vice versa, reports anomalies with flash messages.
 - **Check for orphans** - Checks for files in upload directory that are not in database, and files that are in database but not in upload directory.
 - **Logout all sessions** - Self-explanatory. This is done by generating a new session token which invalidates session cookies (see [auth.py](pfu/auth.py)).
 
@@ -190,7 +197,7 @@ Default view after login. Shows stats and actions.
 ### Upload page
 Upload files here. 
 - **Keep original filename?** - If checked, the original filename gets formatted to be filesystem-safe and prepended to the random filename component to avoid name collisions. It is still stored in its original form in the database.
-- **Expiration date and time** - If set, the file will be automatically deleted at the specified date and time (see [Job scheduler](#job-scheduler)). When time is not set, it defaults to midnight.
+- **Expiration date and time** - If set, the file will be automatically deleted at the specified date and time (see [Job scheduler](#job-scheduler)). When time is not set, it defaults to midnight of set date.
 - **Description** - Optional description of the file, supports multi-line input.
 
 [![Upload page](screenshots/upload.png)](screenshots/upload.png)
@@ -201,7 +208,7 @@ Shows all files or search query results. Self-explanatory. You can click on file
 [![Files page](screenshots/files.png)](screenshots/files.png)
 
 ### Edit file view
-Clicking on edit icon in the files table opens this view. You can edit the file's description and expiration date and time (see [Job scheduler](#job-scheduler)).
+Clicking on edit icon in the files table opens this view. You can edit the file's description, expiration date and time (see [Job scheduler](#job-scheduler)), and recalculate its checksum and size.
 
 [![Edit file](screenshots/edit.png)](screenshots/edit.png)
 
@@ -306,6 +313,9 @@ curl -X POST http://localhost:8080/api/upload \
 
 ```
 
+#### `POST /api/recalculate/<filename>`
+Recalculate file checksum and size (requires **write** permission). Response format same as [GET /api/file/](#get-apifilefilename).
+
 ## Job scheduler
 
 pfu uses APScheduler to run automated tasks in the background:
@@ -314,12 +324,17 @@ pfu uses APScheduler to run automated tasks in the background:
    - Runs every `UPDATE_STATS_INTERVAL` hours (default: 1 hour)
    - Updates cached statistics (file count, expiring files count, total size)
 
-2. **Prepare expire tasks**
+2. **Integrity check**
+   - Runs every `INTEGRITY_CHECK_INTERVAL` hours (default: 24 hours)
+   - Verifies files in database match files in upload directory (checksum and size)
+   - Notifies user using flash messages if any anomalies are detected
+
+3. **Prepare expire tasks**
    - Runs daily at 00:05 and at startup
    - Queries database for files expiring today or in past, to catch up if server was down
    - Schedules individual deletion jobs for each expiring file
 
-3. **File expiration jobs**
+4. **File expiration jobs**
    - Created by daily prepare expire task
    - Created when files with expiration dates set to today are uploaded
    - Created and removed as necessary when editing files' expiration dates
@@ -330,10 +345,9 @@ pfu uses APScheduler to run automated tasks in the background:
 
 ## Future plans
 In no particular order:
-- Automated testing... *sigh*
+- ~~Automated testing... *sigh*~~ - mostly done but not committed
+- Image upload tools (strip EXIF, optimise/minify to reduce file size)
 - Move forms to WTForms
 - Log storage and rotation
-- Humanize expire and upload dates (for example, "2 days ago" instead of "2026-01-31 12:00:00")
 - Add more search/filtering functionality
-- Add type hints
 - Whatever else comes to mind
