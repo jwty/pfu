@@ -80,7 +80,9 @@ def upload() -> tuple[ApiResponse, int] | ApiResponse:
     file = request.files.get('file')
     if not file:
         return {'status': Status.ERROR.value, 'message': 'No file provided'}, 400
-    keep_filename = 'keep_filename' in request.form
+    options_str = request.form.get('options', '')
+    options = [o.strip() for o in options_str.split(',')]
+    keep_filename = 'keep_filename' in options
     expire_timestamp = request.form.get('expire', None, int)
     description = request.form.get('description', '')
     result = save_file(file, keep_filename, expire_timestamp, description)
